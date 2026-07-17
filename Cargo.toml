@@ -1,0 +1,18 @@
+[package]
+name = "mwi_combat_simulator"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mwi_combat_simulator"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+rayon = "1"
+
+[dependencies.indexmap]
+version = "=2.2.6"
+features = ["serde"]
