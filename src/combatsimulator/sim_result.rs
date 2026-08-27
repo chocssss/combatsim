@@ -90,6 +90,11 @@ pub struct SimResult {
     pub wipe_events: Vec<WipeEvent>,
     pub simulated_time: i64,
     pub time_series_data: TimeSeriesData,
+    // Set only when the simulator was asked to stop after the first dungeon
+    // attempt resolves (see CombatSimulator::set_stop_after_dungeon_result):
+    // Some(true) = the attempt was cleared, Some(false) = the party wiped,
+    // None = the attempt didn't resolve within the given time limit.
+    pub dungeon_attempt_won: Option<bool>,
 }
 
 impl SimResult {
@@ -152,6 +157,7 @@ impl SimResult {
             wipe_events: Vec::new(),
             simulated_time: 0,
             time_series_data: TimeSeriesData::default(),
+            dungeon_attempt_won: None,
         }
     }
 

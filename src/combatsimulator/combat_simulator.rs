@@ -67,6 +67,7 @@ pub struct CombatSimulator {
     wipe_log_count: usize,
     wipe_log_max: usize,
     market_prices: Option<std::collections::HashMap<String, f64>>,
+    stop_after_dungeon_result: bool,
 }
 
 impl CombatSimulator {
@@ -111,7 +112,16 @@ impl CombatSimulator {
             wipe_log_count: 0,
             wipe_log_max,
             market_prices,
+            stop_after_dungeon_result: false,
         }
+    }
+
+    /// When enabled, `simulate` stops as soon as the first dungeon attempt in
+    /// the run resolves (cleared or wiped) instead of running to `time_limit`.
+    /// Used for the `--guild` trial staircase, where each guild tier is a
+    /// single attempt rather than a repeatedly-farmed dungeon.
+    pub fn set_stop_after_dungeon_result(&mut self, stop: bool) {
+        self.stop_after_dungeon_result = stop;
     }
 
     // -- Wipe logs -------------------------------------------------------------
@@ -170,6 +180,9 @@ impl CombatSimulator {
                     self.simulation_time,
                     &self.units[..self.num_players].to_vec(),
                 );
+            }
+            if self.stop_after_dungeon_result && self.sim_result.dungeon_attempt_won.is_some() {
+                break;
             }
         }
 
@@ -732,6 +745,7 @@ impl CombatSimulator {
                 if enc > max_waves {
                     self.sim_result.update_dungeon_finish("#1", self.simulation_time);
                     self.sim_result.last_dungeon_finish_time = self.simulation_time;
+                    self.sim_result.dungeon_attempt_won = Some(true);
                 }
             }
 
@@ -767,6 +781,7 @@ impl CombatSimulator {
                 self.save_wipe_logs_to_sim_result(wave);
                 self.wipe_log_index = 0;
                 self.wipe_log_count = 0;
+                self.sim_result.dungeon_attempt_won = Some(false);
 
                 for type_str in &[
                     crate::combatsimulator::events::AUTO_ATTACK,

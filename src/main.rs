@@ -358,8 +358,12 @@ fn print_usage() {
     eprintln!("  --simple          Human-readable summary (DPS, XP/hr, encounters, mana, deaths, loot)");
     eprintln!("  --custom-monster FILE  Load a custom monster JSON file (repeatable).");
     eprintln!("  --list-zones      List all available combat zones and exit");
-    eprintln!("  --guild N         Guild mode (N is guild level, 100-300). Disables all");
-    eprintln!("                    consumables and grants a flat +3% HP/MP regen buff.");
+    eprintln!("  --guild           Guild trial staircase for a trial_* --zone: climbs guild");
+    eprintln!("                    level 100, 110, 120, ... up to 300, one attempt per tier");
+    eprintln!("                    with full HP/MP and cooldowns restored between tiers.");
+    eprintln!("                    Stops on the first wipe or after 1 simulated hour total.");
+    eprintln!("                    Disables all consumables and grants a flat +3% HP/MP");
+    eprintln!("                    regen buff.");
 }
 
 fn list_zones() {
@@ -394,7 +398,7 @@ struct Args {
     market_prices: bool,
     all_zones: bool,
     optimize: Option<String>,
-    guild: Option<i32>,
+    guild: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -418,7 +422,7 @@ fn parse_args() -> Result<Args, String> {
     let mut market_prices = false;
     let mut all_zones    = false;
     let mut optimize: Option<String> = None;
-    let mut guild: Option<i32> = None;
+    let mut guild = false;
 
     let mut i = 1;
     while i < args.len() {
@@ -438,16 +442,7 @@ fn parse_args() -> Result<Args, String> {
             "--market"   => { market_prices = true; },
             "--all-zones"  => { all_zones = true; },
             "--optimize"   => { i += 1; if let Some(s) = args.get(i) { optimize = Some(s.clone()); } },
-            "--guild"      => {
-                i += 1;
-                let n: i32 = args.get(i)
-                    .and_then(|s| s.parse().ok())
-                    .ok_or_else(|| "--guild requires an integer argument".to_string())?;
-                if !(100..=300).contains(&n) {
-                    return Err(format!("--guild must be between 100 and 300 (got {})", n));
-                }
-                guild = Some(n);
-            },
+            "--guild"      => { guild = true; },
             other if other.starts_with("--") => return Err(format!("Unknown argument: {}", other)),
             _ => {}
         }
@@ -457,22 +452,11 @@ fn parse_args() -> Result<Args, String> {
     if zone.is_empty() && !all_zones && optimize.is_none() {
         return Err("--zone is required (or use --all-zones for planet zone comparison).".to_string());
     }
-    if zone.starts_with("/actions/combat/trial_") && guild.is_none() {
-        return Err("Trial zones require --guild N (100-300) to determine encounter scaling.".to_string());
+    if zone.starts_with("/actions/combat/trial_") && !guild {
+        return Err("Trial zones require --guild to run the guild-level staircase.".to_string());
     }
 
     Ok(Args { zone, tier, hours, runs, moo_pass, com_exp, com_drop, pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild })
-}
-
-/// The difficulty tier to feed into `Zone::new` for a given zone: trial (guild) zones
-/// scale off `--guild` instead of `--tier`, since their monster data is calibrated
-/// against difficulty_tier == guild level (100-300), not the usual 0-4 dungeon tier.
-pub fn effective_tier(zone_hrid: &str, args: &Args) -> i32 {
-    if zone_hrid.starts_with("/actions/combat/trial_") {
-        args.guild.unwrap_or(args.tier)
-    } else {
-        args.tier
-    }
 }
 
 // -- Main ----------------------------------------------------------------------
@@ -857,6 +841,86 @@ fn run_all_zones(
     }
 }
 
+/// --guild: climb a trial zone's guild-level staircase (100, 110, 120, ... up to 300).
+/// Each tier is a single attempt against a fully healed party with cooldowns reset
+/// (a fresh CombatSimulator/CombatUnit set does this naturally). The whole climb is
+/// capped at 1 hour of cumulative simulated time and stops the moment the party wipes.
+fn run_guild_staircase(
+    args: &Args,
+    player_dtos: &[serde_json::Value],
+    extra_buffs: &[combatsimulator::buff::Buff],
+    market_prices: Option<&std::collections::HashMap<String, f64>>,
+) {
+    const START_GUILD: i32 = 100;
+    const STEP: i32 = 10;
+    const MAX_GUILD: i32 = 300;
+    const TOTAL_TIME_BUDGET: i64 = 3600 * 1_000_000_000; // 1 simulated hour, ns
+
+    println!("=== MWI Guild Trial Staircase: {} ===", args.zone);
+    println!("{:<10} {:<10} {:>10}", "Guild", "Result", "Duration");
+    println!("{}", "-".repeat(32));
+
+    let mut time_used: i64 = 0;
+    let mut highest_cleared: Option<i32> = None;
+    let mut guild = START_GUILD;
+
+    loop {
+        if guild > MAX_GUILD {
+            println!();
+            println!("Reached the guild level cap ({}) without wiping.", MAX_GUILD);
+            break;
+        }
+
+        let remaining = TOTAL_TIME_BUDGET - time_used;
+        if remaining <= 0 {
+            println!();
+            println!("1-hour simulated time budget exhausted before attempting guild level {}.", guild);
+            break;
+        }
+
+        let zone = Some(Zone::new(args.zone.clone(), guild));
+        let players: Vec<CombatUnit> = player_dtos.iter().map(|dto| {
+            let mut player = CombatUnit::create_from_dto(dto);
+            if let Some(ref z) = zone { player.zone_buffs = z.buffs.clone(); }
+            player.extra_buffs = extra_buffs.to_vec();
+            player
+        }).collect();
+
+        let mut sim = CombatSimulator::new(players, zone, None, false, market_prices.cloned());
+        sim.set_stop_after_dungeon_result(true);
+        let result = sim.simulate(remaining).clone();
+        time_used += result.simulated_time;
+
+        let duration = format!("{:.1}s", result.simulated_time as f64 / 1e9);
+
+        match result.dungeon_attempt_won {
+            Some(true) => {
+                println!("{:<10} {:<10} {:>10}", guild, "CLEARED", duration);
+                highest_cleared = Some(guild);
+                guild += STEP;
+            }
+            Some(false) => {
+                println!("{:<10} {:<10} {:>10}", guild, "WIPED", duration);
+                println!();
+                println!("Party wiped at guild level {}.", guild);
+                break;
+            }
+            None => {
+                println!("{:<10} {:<10} {:>10}", guild, "TIMEOUT", duration);
+                println!();
+                println!("Attempt at guild level {} did not resolve within the remaining time budget.", guild);
+                break;
+            }
+        }
+    }
+
+    println!();
+    match highest_cleared {
+        Some(lvl) => println!("Highest guild level cleared: {}", lvl),
+        None => println!("Failed to clear guild level {}.", START_GUILD),
+    }
+}
+
 fn main() {
     let args = match parse_args() {
         Ok(a) => a,
@@ -923,7 +987,7 @@ fn main() {
     }
 
     // --guild: strip all consumables (guild raids forbid food/drinks).
-    if args.guild.is_some() {
+    if args.guild {
         for dto in player_dtos.iter_mut() {
             dto["food"] = json!([Value::Null, Value::Null, Value::Null]);
             dto["drinks"] = json!([Value::Null, Value::Null, Value::Null]);
@@ -943,7 +1007,7 @@ fn main() {
         extra_buffs.push(Buff::inline("/buff_uniques/combat_community_buff", "/buff_types/combat_drop_quantity",
             0.0, 0.005 * (args.com_drop - 1.0) + 0.2, 0));
     }
-    if args.guild.is_some() {
+    if args.guild {
         extra_buffs.push(Buff::inline("/buff_uniques/guild_hp_regen_buff", "/buff_types/hp_regen", 0.0, 0.03, 0));
         extra_buffs.push(Buff::inline("/buff_uniques/guild_mp_regen_buff", "/buff_types/mp_regen", 0.0, 0.03, 0));
     }
@@ -1001,11 +1065,17 @@ fn main() {
         return;
     }
 
+    // --guild: climb the trial guild-level staircase, then exit.
+    if args.guild {
+        run_guild_staircase(&args, &player_dtos, &extra_buffs, market_prices.as_ref());
+        return;
+    }
+
     // Run `args.runs` independent simulations in parallel.
     let results: Vec<SimResult> = (0..args.runs)
         .into_par_iter()
         .map(|_| {
-            let zone = Some(Zone::new(args.zone.clone(), effective_tier(&args.zone, &args)));
+            let zone = Some(Zone::new(args.zone.clone(), args.tier));
             let players: Vec<CombatUnit> = player_dtos.iter().map(|dto| {
                 let mut player = CombatUnit::create_from_dto(dto);
                 if let Some(ref z) = zone { player.zone_buffs = z.buffs.clone(); }

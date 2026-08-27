@@ -716,7 +716,7 @@ pub fn run_optimize(
     let sim_hours = args.hours * args.runs as f64;
     let time_limit = (args.hours * 3600.0 * 1_000_000_000.0) as i64;
     let zone_hrid = &args.zone;
-    let tier = crate::effective_tier(zone_hrid, args);
+    let tier = args.tier;
 
     // Find target player DTO index
     let target_idx = match player_dtos.iter().position(|d| {
