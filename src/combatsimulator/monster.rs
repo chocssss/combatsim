@@ -211,11 +211,21 @@ pub fn monster_update_combat_details(unit: &mut CombatUnit) {
 
     unit.update_combat_details_base();
 
-    // Guild monsters get +1% max HP per player in the party.
+    // Guild monsters get +1% max HP, +2% attack/cast speed, and +2 ability haste per player in the party.
     if is_guild_monster && unit.monster_num_players > 0 {
-        let hp_scale = 1.0 + 0.01 * unit.monster_num_players as f64;
+        let n = unit.monster_num_players as f64;
+
+        let hp_scale = 1.0 + 0.01 * n;
         unit.combat_details.max_hitpoints =
             (unit.combat_details.max_hitpoints as f64 * hp_scale).floor() as i64;
+
+        // attack_interval was already derived from the pre-bonus attack_speed in
+        // update_combat_details_base(), so apply the bonus as an extra division here.
+        let attack_speed_bonus = 0.02 * n;
+        unit.combat_details.combat_stats.attack_interval /= 1.0 + attack_speed_bonus;
+        unit.combat_details.combat_stats.attack_speed += attack_speed_bonus;
+        unit.combat_details.combat_stats.cast_speed += 0.02 * n;
+        unit.combat_details.combat_stats.ability_haste += 2.0 * n;
     }
 }
 

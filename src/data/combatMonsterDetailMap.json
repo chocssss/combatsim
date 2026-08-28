@@ -3480,8 +3480,8 @@
             },
             {
                 "itemHrid": "/items/blue_key_fragment",
-                "dropRate": -0.00003,
-                "dropRatePerDifficultyTier": 0.00006,
+                "dropRate": -3e-05,
+                "dropRatePerDifficultyTier": 6e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -5051,8 +5051,8 @@
             },
             {
                 "itemHrid": "/items/invincible",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -5660,8 +5660,8 @@
             },
             {
                 "itemHrid": "/items/mystic_aura",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -7387,8 +7387,8 @@
             },
             {
                 "itemHrid": "/items/fierce_aura",
-                "dropRate": -0.00003,
-                "dropRatePerDifficultyTier": 0.00003,
+                "dropRate": -3e-05,
+                "dropRatePerDifficultyTier": 3e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -7492,7 +7492,7 @@
             },
             {
                 "itemHrid": "/items/blue_key_fragment",
-                "dropRate": -0.00006,
+                "dropRate": -6e-05,
                 "dropRatePerDifficultyTier": 0.00012,
                 "minCount": 1,
                 "maxCount": 1
@@ -7798,8 +7798,8 @@
             },
             {
                 "itemHrid": "/items/blue_key_fragment",
-                "dropRate": -0.00004,
-                "dropRatePerDifficultyTier": 0.00008,
+                "dropRate": -4e-05,
+                "dropRatePerDifficultyTier": 8e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -8506,7 +8506,7 @@
             },
             {
                 "itemHrid": "/items/blue_key_fragment",
-                "dropRate": -0.00005,
+                "dropRate": -5e-05,
                 "dropRatePerDifficultyTier": 0.0001,
                 "minCount": 1,
                 "maxCount": 1
@@ -8617,7 +8617,7 @@
             },
             {
                 "itemHrid": "/items/blue_key_fragment",
-                "dropRate": -0.00008,
+                "dropRate": -8e-05,
                 "dropRatePerDifficultyTier": 0.00016,
                 "minCount": 1,
                 "maxCount": 1
@@ -8860,8 +8860,8 @@
             },
             {
                 "itemHrid": "/items/critical_aura",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -9098,8 +9098,8 @@
             },
             {
                 "itemHrid": "/items/guardian_aura",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -9750,8 +9750,8 @@
             },
             {
                 "itemHrid": "/items/guardian_aura",
-                "dropRate": -0.00002,
-                "dropRatePerDifficultyTier": 0.00002,
+                "dropRate": -2e-05,
+                "dropRatePerDifficultyTier": 2e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -10037,8 +10037,8 @@
             },
             {
                 "itemHrid": "/items/fierce_aura",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -10291,8 +10291,8 @@
             },
             {
                 "itemHrid": "/items/insanity",
-                "dropRate": -0.00005,
-                "dropRatePerDifficultyTier": 0.00005,
+                "dropRate": -5e-05,
+                "dropRatePerDifficultyTier": 5e-05,
                 "minCount": 1,
                 "maxCount": 1
             }
@@ -10542,777 +10542,766 @@
         ]
     },
     "/monsters/trial_badger": {
-      "hrid": "/monsters/trial_badger",
-      "name": "Trial Badger",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 330000,
-        "maxHitpoints": 330000,
-        "currentManapoints": 330000,
-        "maxManapoints": 330000,
-        "attackInterval": 1714285714,
-        "totalCastSpeed": 0.05,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 462,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 110,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 110,
-        "slashMaxDamage": 264,
-        "smashMaxDamage": 110,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 10,
-        "stabEvasionRating": 517,
-        "slashEvasionRating": 517,
-        "smashEvasionRating": 517,
-        "rangedEvasionRating": 660,
-        "magicEvasionRating": 374,
-        "totalArmor": 400,
-        "totalWaterResistance": 140,
-        "totalNatureResistance": 140,
-        "totalFireResistance": 140,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 100,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 0,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/slash"
-          ],
-          "damageType": "/damage_types/physical",
-          "attackInterval": 1800000000,
-          "abilityHaste": 80,
-          "slashAccuracy": 3.2,
-          "slashDamage": 1.4,
-          "maxHitpointsRatio": 299,
-          "maxManapointsRatio": 299,
-          "stabEvasion": 3.7,
-          "slashEvasion": 3.7,
-          "smashEvasion": 3.7,
-          "rangedEvasion": 5,
-          "magicEvasion": 2.4,
-          "armor": 380,
-          "waterResistance": 120,
-          "natureResistance": 120,
-          "fireResistance": 120,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/fierce_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_badger",
+        "name": "Trial Badger",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 379500,
+            "maxHitpoints": 379500,
+            "currentManapoints": 379500,
+            "maxManapoints": 379500,
+            "attackInterval": 2571428571,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 462,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 110,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 110,
+            "slashMaxDamage": 264,
+            "smashMaxDamage": 110,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 10,
+            "stabEvasionRating": 517,
+            "slashEvasionRating": 517,
+            "smashEvasionRating": 517,
+            "rangedEvasionRating": 660,
+            "magicEvasionRating": 374,
+            "totalArmor": 420,
+            "totalWaterResistance": 170,
+            "totalNatureResistance": 170,
+            "totalFireResistance": 170,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 100,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 0,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/slash"
+                ],
+                "damageType": "/damage_types/physical",
+                "attackInterval": 2700000000,
+                "slashAccuracy": 3.2,
+                "slashDamage": 1.4,
+                "maxHitpointsRatio": 344,
+                "maxManapointsRatio": 344,
+                "stabEvasion": 3.7,
+                "slashEvasion": 3.7,
+                "smashEvasion": 3.7,
+                "rangedEvasion": 5,
+                "magicEvasion": 2.4,
+                "armor": 400,
+                "waterResistance": 150,
+                "natureResistance": 150,
+                "fireResistance": 150,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/berserk",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/maim",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/cleave",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/scratch",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/fierce_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/berserk",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/maim",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/cleave",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/scratch",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_beetle": {
-      "hrid": "/monsters/trial_beetle",
-      "name": "Trial Beetle",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 220000,
-        "maxHitpoints": 220000,
-        "currentManapoints": 220000,
-        "maxManapoints": 220000,
-        "attackInterval": 1428571428,
-        "totalCastSpeed": 0.05,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 330,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 110,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 110,
-        "slashMaxDamage": 110,
-        "smashMaxDamage": 165,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 10,
-        "stabEvasionRating": 550,
-        "slashEvasionRating": 550,
-        "smashEvasionRating": 429,
-        "rangedEvasionRating": 550,
-        "magicEvasionRating": 429,
-        "totalArmor": 420,
-        "totalWaterResistance": 220,
-        "totalNatureResistance": 320,
-        "totalFireResistance": 320,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 100,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 0,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/smash"
-          ],
-          "damageType": "/damage_types/physical",
-          "attackInterval": 1500000000,
-          "abilityHaste": 80,
-          "smashAccuracy": 2,
-          "smashDamage": 0.5,
-          "maxHitpointsRatio": 199,
-          "maxManapointsRatio": 199,
-          "stabEvasion": 4,
-          "slashEvasion": 4,
-          "smashEvasion": 2.9,
-          "rangedEvasion": 4,
-          "magicEvasion": 2.9,
-          "armor": 400,
-          "waterResistance": 200,
-          "natureResistance": 300,
-          "fireResistance": 300,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/invincible",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_beetle",
+        "name": "Trial Beetle",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 220000,
+            "maxHitpoints": 220000,
+            "currentManapoints": 220000,
+            "maxManapoints": 220000,
+            "attackInterval": 2190476190,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 330,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 110,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 110,
+            "slashMaxDamage": 110,
+            "smashMaxDamage": 165,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 10,
+            "stabEvasionRating": 550,
+            "slashEvasionRating": 550,
+            "smashEvasionRating": 429,
+            "rangedEvasionRating": 550,
+            "magicEvasionRating": 429,
+            "totalArmor": 420,
+            "totalWaterResistance": 220,
+            "totalNatureResistance": 320,
+            "totalFireResistance": 320,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 100,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 0,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/smash"
+                ],
+                "damageType": "/damage_types/physical",
+                "attackInterval": 2300000000,
+                "smashAccuracy": 2,
+                "smashDamage": 0.5,
+                "maxHitpointsRatio": 199,
+                "maxManapointsRatio": 199,
+                "stabEvasion": 4,
+                "slashEvasion": 4,
+                "smashEvasion": 2.9,
+                "rangedEvasion": 4,
+                "magicEvasion": 2.9,
+                "armor": 400,
+                "waterResistance": 200,
+                "natureResistance": 300,
+                "fireResistance": 300,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/toughness",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/fracturing_impact",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/stunning_blow",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/sweep",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/invincible",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/toughness",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/fracturing_impact",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/stunning_blow",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/sweep",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_chameleon": {
-      "hrid": "/monsters/trial_chameleon",
-      "name": "Trial Chameleon",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 550000,
-        "maxHitpoints": 550000,
-        "currentManapoints": 550000,
-        "maxManapoints": 550000,
-        "attackInterval": 1714285714,
-        "totalCastSpeed": 0.05,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 505.99999999999994,
-        "magicAccuracyRating": 110,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 10,
-        "slashMaxDamage": 10,
-        "smashMaxDamage": 10,
-        "rangedMaxDamage": 385,
-        "magicMaxDamage": 10,
-        "stabEvasionRating": 396,
-        "slashEvasionRating": 396,
-        "smashEvasionRating": 396,
-        "rangedEvasionRating": 517,
-        "magicEvasionRating": 616,
-        "totalArmor": 200,
-        "totalWaterResistance": 340,
-        "totalNatureResistance": 340,
-        "totalFireResistance": 340,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 0,
-        "defenseLevel": 100,
-        "rangedLevel": 100,
-        "magicLevel": 0,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/ranged"
-          ],
-          "damageType": "/damage_types/physical",
-          "attackInterval": 1800000000,
-          "abilityHaste": 80,
-          "rangedAccuracy": 3.6,
-          "rangedDamage": 2.5,
-          "maxHitpointsRatio": 499,
-          "maxManapointsRatio": 499,
-          "stabEvasion": 2.6,
-          "slashEvasion": 2.6,
-          "smashEvasion": 2.6,
-          "rangedEvasion": 3.7,
-          "magicEvasion": 4.6,
-          "armor": 180,
-          "waterResistance": 320,
-          "natureResistance": 320,
-          "fireResistance": 320,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/critical_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_chameleon",
+        "name": "Trial Chameleon",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 632500,
+            "maxHitpoints": 632500,
+            "currentManapoints": 632500,
+            "maxManapoints": 632500,
+            "attackInterval": 2571428571,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 505.99999999999994,
+            "magicAccuracyRating": 110,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 10,
+            "slashMaxDamage": 10,
+            "smashMaxDamage": 10,
+            "rangedMaxDamage": 385,
+            "magicMaxDamage": 10,
+            "stabEvasionRating": 396,
+            "slashEvasionRating": 396,
+            "smashEvasionRating": 396,
+            "rangedEvasionRating": 517,
+            "magicEvasionRating": 616,
+            "totalArmor": 245,
+            "totalWaterResistance": 420,
+            "totalNatureResistance": 420,
+            "totalFireResistance": 420,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 0,
+            "defenseLevel": 100,
+            "rangedLevel": 100,
+            "magicLevel": 0,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/ranged"
+                ],
+                "damageType": "/damage_types/physical",
+                "attackInterval": 2700000000,
+                "rangedAccuracy": 3.6,
+                "rangedDamage": 2.5,
+                "maxHitpointsRatio": 574,
+                "maxManapointsRatio": 574,
+                "stabEvasion": 2.6,
+                "slashEvasion": 2.6,
+                "smashEvasion": 2.6,
+                "rangedEvasion": 3.7,
+                "magicEvasion": 4.6,
+                "armor": 225,
+                "waterResistance": 400,
+                "natureResistance": 400,
+                "fireResistance": 400,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/precision",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/penetrating_shot",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/rain_of_arrows",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/steady_shot",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/critical_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/precision",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/penetrating_shot",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/rain_of_arrows",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/steady_shot",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_dragonfly": {
-      "hrid": "/monsters/trial_dragonfly",
-      "name": "Trial Dragonfly",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 220000,
-        "maxHitpoints": 220000,
-        "currentManapoints": 220000,
-        "maxManapoints": 220000,
-        "attackInterval": 1714285714,
-        "totalCastSpeed": 0.05,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 505.99999999999994,
-        "magicAccuracyRating": 110,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 10,
-        "slashMaxDamage": 10,
-        "smashMaxDamage": 10,
-        "rangedMaxDamage": 143,
-        "magicMaxDamage": 10,
-        "stabEvasionRating": 352,
-        "slashEvasionRating": 352,
-        "smashEvasionRating": 352,
-        "rangedEvasionRating": 473,
-        "magicEvasionRating": 616,
-        "totalArmor": 140,
-        "totalWaterResistance": 220,
-        "totalNatureResistance": 220,
-        "totalFireResistance": 220,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 0,
-        "defenseLevel": 100,
-        "rangedLevel": 100,
-        "magicLevel": 0,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/ranged"
-          ],
-          "damageType": "/damage_types/physical",
-          "attackInterval": 1800000000,
-          "abilityHaste": 80,
-          "rangedAccuracy": 3.6,
-          "rangedDamage": 0.3,
-          "maxHitpointsRatio": 199,
-          "maxManapointsRatio": 199,
-          "stabEvasion": 2.2,
-          "slashEvasion": 2.2,
-          "smashEvasion": 2.2,
-          "rangedEvasion": 3.3,
-          "magicEvasion": 4.6,
-          "armor": 120,
-          "waterResistance": 200,
-          "natureResistance": 200,
-          "fireResistance": 200,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/critical_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_dragonfly",
+        "name": "Trial Dragonfly",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 220000,
+            "maxHitpoints": 220000,
+            "currentManapoints": 220000,
+            "maxManapoints": 220000,
+            "attackInterval": 2571428571,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 505.99999999999994,
+            "magicAccuracyRating": 110,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 10,
+            "slashMaxDamage": 10,
+            "smashMaxDamage": 10,
+            "rangedMaxDamage": 143,
+            "magicMaxDamage": 10,
+            "stabEvasionRating": 352,
+            "slashEvasionRating": 352,
+            "smashEvasionRating": 352,
+            "rangedEvasionRating": 473,
+            "magicEvasionRating": 616,
+            "totalArmor": 140,
+            "totalWaterResistance": 220,
+            "totalNatureResistance": 220,
+            "totalFireResistance": 220,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 0,
+            "defenseLevel": 100,
+            "rangedLevel": 100,
+            "magicLevel": 0,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/ranged"
+                ],
+                "damageType": "/damage_types/physical",
+                "attackInterval": 2700000000,
+                "rangedAccuracy": 3.6,
+                "rangedDamage": 0.3,
+                "maxHitpointsRatio": 199,
+                "maxManapointsRatio": 199,
+                "stabEvasion": 2.2,
+                "slashEvasion": 2.2,
+                "smashEvasion": 2.2,
+                "rangedEvasion": 3.3,
+                "magicEvasion": 4.6,
+                "armor": 120,
+                "waterResistance": 200,
+                "natureResistance": 200,
+                "fireResistance": 200,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/precision",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/steady_shot",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/rain_of_arrows",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/pestilent_shot",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/critical_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/precision",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/steady_shot",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/rain_of_arrows",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/pestilent_shot",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_firefly": {
-      "hrid": "/monsters/trial_firefly",
-      "name": "Trial Firefly",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 220000,
-        "maxHitpoints": 220000,
-        "currentManapoints": 220000,
-        "maxManapoints": 220000,
-        "attackInterval": 1904761904,
-        "totalCastSpeed": 0.55,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 462,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 10,
-        "slashMaxDamage": 10,
-        "smashMaxDamage": 10,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 154,
-        "stabEvasionRating": 660,
-        "slashEvasionRating": 660,
-        "smashEvasionRating": 660,
-        "rangedEvasionRating": 352,
-        "magicEvasionRating": 473,
-        "totalArmor": 120,
-        "totalWaterResistance": 140,
-        "totalNatureResistance": 200,
-        "totalFireResistance": 200,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 0,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 100,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/magic"
-          ],
-          "damageType": "/damage_types/fire",
-          "attackInterval": 2000000000,
-          "castSpeed": 0.5,
-          "abilityHaste": 80,
-          "magicAccuracy": 3.2,
-          "magicDamage": 0.4,
-          "maxHitpointsRatio": 199,
-          "maxManapointsRatio": 199,
-          "stabEvasion": 5,
-          "slashEvasion": 5,
-          "smashEvasion": 5,
-          "rangedEvasion": 2.2,
-          "magicEvasion": 3.3,
-          "armor": 100,
-          "waterResistance": 120,
-          "natureResistance": 180,
-          "fireResistance": 180,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/mystic_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_firefly",
+        "name": "Trial Firefly",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 220000,
+            "maxHitpoints": 220000,
+            "currentManapoints": 220000,
+            "maxManapoints": 220000,
+            "attackInterval": 2857142857,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 462,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 10,
+            "slashMaxDamage": 10,
+            "smashMaxDamage": 10,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 154,
+            "stabEvasionRating": 660,
+            "slashEvasionRating": 660,
+            "smashEvasionRating": 660,
+            "rangedEvasionRating": 352,
+            "magicEvasionRating": 473,
+            "totalArmor": 120,
+            "totalWaterResistance": 140,
+            "totalNatureResistance": 200,
+            "totalFireResistance": 200,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 0,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 100,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/magic"
+                ],
+                "damageType": "/damage_types/fire",
+                "attackInterval": 3000000000,
+                "magicAccuracy": 3.2,
+                "magicDamage": 0.4,
+                "maxHitpointsRatio": 199,
+                "maxManapointsRatio": 199,
+                "stabEvasion": 5,
+                "slashEvasion": 5,
+                "smashEvasion": 5,
+                "rangedEvasion": 2.2,
+                "magicEvasion": 3.3,
+                "armor": 100,
+                "waterResistance": 120,
+                "natureResistance": 180,
+                "fireResistance": 180,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/elemental_affinity",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/firestorm",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/smoke_burst",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/fireball",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/mystic_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/elemental_affinity",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/firestorm",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/smoke_burst",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/fireball",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_hedgehog": {
-      "hrid": "/monsters/trial_hedgehog",
-      "name": "Trial Hedgehog",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 440000,
-        "maxHitpoints": 440000,
-        "currentManapoints": 440000,
-        "maxManapoints": 440000,
-        "attackInterval": 1904761904,
-        "totalCastSpeed": 0.55,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 418,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 418,
-        "defensiveMaxDamage": 286,
-        "stabMaxDamage": 110,
-        "slashMaxDamage": 110,
-        "smashMaxDamage": 286,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 286,
-        "stabEvasionRating": 495,
-        "slashEvasionRating": 495,
-        "smashEvasionRating": 495,
-        "rangedEvasionRating": 495,
-        "magicEvasionRating": 495,
-        "totalArmor": 270,
-        "totalWaterResistance": 270,
-        "totalNatureResistance": 270,
-        "totalFireResistance": 160,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 100,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 100,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/magic"
-          ],
-          "damageType": "/damage_types/nature",
-          "attackInterval": 2000000000,
-          "castSpeed": 0.5,
-          "abilityHaste": 80,
-          "smashAccuracy": 2.8,
-          "magicAccuracy": 2.8,
-          "smashDamage": 1.6,
-          "magicDamage": 1.6,
-          "defensiveDamage": 1.6,
-          "maxHitpointsRatio": 399,
-          "maxManapointsRatio": 399,
-          "stabEvasion": 3.5,
-          "slashEvasion": 3.5,
-          "smashEvasion": 3.5,
-          "rangedEvasion": 3.5,
-          "magicEvasion": 3.5,
-          "armor": 250,
-          "waterResistance": 250,
-          "natureResistance": 250,
-          "fireResistance": 140,
-          "tenacity": 5000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/guardian_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_hedgehog",
+        "name": "Trial Hedgehog",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 440000,
+            "maxHitpoints": 440000,
+            "currentManapoints": 440000,
+            "maxManapoints": 440000,
+            "attackInterval": 2857142857,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 418,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 418,
+            "defensiveMaxDamage": 286,
+            "stabMaxDamage": 110,
+            "slashMaxDamage": 110,
+            "smashMaxDamage": 286,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 286,
+            "stabEvasionRating": 495,
+            "slashEvasionRating": 495,
+            "smashEvasionRating": 495,
+            "rangedEvasionRating": 495,
+            "magicEvasionRating": 495,
+            "totalArmor": 270,
+            "totalWaterResistance": 270,
+            "totalNatureResistance": 270,
+            "totalFireResistance": 160,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 100,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 100,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/magic"
+                ],
+                "damageType": "/damage_types/nature",
+                "attackInterval": 3000000000,
+                "smashAccuracy": 2.8,
+                "magicAccuracy": 2.8,
+                "smashDamage": 1.6,
+                "magicDamage": 1.6,
+                "defensiveDamage": 1.6,
+                "maxHitpointsRatio": 399,
+                "maxManapointsRatio": 399,
+                "stabEvasion": 3.5,
+                "slashEvasion": 3.5,
+                "smashEvasion": 3.5,
+                "rangedEvasion": 3.5,
+                "magicEvasion": 3.5,
+                "armor": 250,
+                "waterResistance": 250,
+                "natureResistance": 250,
+                "fireResistance": 140,
+                "tenacity": 5000
+            }
         },
-        {
-          "abilityHrid": "/abilities/toughness",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/spike_shell",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/natures_veil",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/fracturing_impact",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/guardian_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/toughness",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/spike_shell",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/natures_veil",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/fracturing_impact",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_jellyfish": {
-      "hrid": "/monsters/trial_jellyfish",
-      "name": "Trial Jellyfish",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 495000,
-        "maxHitpoints": 495000,
-        "currentManapoints": 495000,
-        "maxManapoints": 495000,
-        "attackInterval": 1904761904,
-        "totalCastSpeed": 0.55,
-        "stabAccuracyRating": 110,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 418,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 10,
-        "slashMaxDamage": 10,
-        "smashMaxDamage": 10,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 352,
-        "stabEvasionRating": 770,
-        "slashEvasionRating": 770,
-        "smashEvasionRating": 770,
-        "rangedEvasionRating": 396,
-        "magicEvasionRating": 517,
-        "totalArmor": 200,
-        "totalWaterResistance": 280,
-        "totalNatureResistance": 160,
-        "totalFireResistance": 280,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 0,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 100,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/magic"
-          ],
-          "damageType": "/damage_types/water",
-          "attackInterval": 2000000000,
-          "castSpeed": 0.5,
-          "abilityHaste": 80,
-          "magicAccuracy": 2.8,
-          "magicDamage": 2.2,
-          "maxHitpointsRatio": 449,
-          "maxManapointsRatio": 449,
-          "stabEvasion": 6,
-          "slashEvasion": 6,
-          "smashEvasion": 6,
-          "rangedEvasion": 2.6,
-          "magicEvasion": 3.7,
-          "armor": 180,
-          "waterResistance": 260,
-          "natureResistance": 140,
-          "fireResistance": 260,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/mystic_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_jellyfish",
+        "name": "Trial Jellyfish",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 572000,
+            "maxHitpoints": 572000,
+            "currentManapoints": 572000,
+            "maxManapoints": 572000,
+            "attackInterval": 2857142857,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 110,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 418,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 10,
+            "slashMaxDamage": 10,
+            "smashMaxDamage": 10,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 352,
+            "stabEvasionRating": 770,
+            "slashEvasionRating": 770,
+            "smashEvasionRating": 770,
+            "rangedEvasionRating": 396,
+            "magicEvasionRating": 517,
+            "totalArmor": 245,
+            "totalWaterResistance": 320,
+            "totalNatureResistance": 195,
+            "totalFireResistance": 320,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 0,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 100,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/magic"
+                ],
+                "damageType": "/damage_types/water",
+                "attackInterval": 3000000000,
+                "magicAccuracy": 2.8,
+                "magicDamage": 2.2,
+                "maxHitpointsRatio": 519,
+                "maxManapointsRatio": 519,
+                "stabEvasion": 6,
+                "slashEvasion": 6,
+                "smashEvasion": 6,
+                "rangedEvasion": 2.6,
+                "magicEvasion": 3.7,
+                "armor": 225,
+                "waterResistance": 300,
+                "natureResistance": 175,
+                "fireResistance": 300,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/elemental_affinity",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/frost_surge",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/mana_spring",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/water_strike",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/mystic_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/elemental_affinity",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/frost_surge",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/mana_spring",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/water_strike",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     },
     "/monsters/trial_wasp": {
-      "hrid": "/monsters/trial_wasp",
-      "name": "Trial Wasp",
-      "isLabyrinthMonster": false,
-      "isGuildMonster": true,
-      "enrageTime": 600000000000,
-      "experience": 0,
-      "combatDetails": {
-        "currentHitpoints": 220000,
-        "maxHitpoints": 220000,
-        "currentManapoints": 220000,
-        "maxManapoints": 220000,
-        "attackInterval": 1619047619,
-        "totalCastSpeed": 0.05,
-        "stabAccuracyRating": 473,
-        "slashAccuracyRating": 110,
-        "smashAccuracyRating": 110,
-        "rangedAccuracyRating": 110,
-        "magicAccuracyRating": 110,
-        "defensiveMaxDamage": 110,
-        "stabMaxDamage": 132,
-        "slashMaxDamage": 110,
-        "smashMaxDamage": 110,
-        "rangedMaxDamage": 10,
-        "magicMaxDamage": 10,
-        "stabEvasionRating": 473,
-        "slashEvasionRating": 473,
-        "smashEvasionRating": 473,
-        "rangedEvasionRating": 605,
-        "magicEvasionRating": 352,
-        "totalArmor": 200,
-        "totalWaterResistance": 120,
-        "totalNatureResistance": 120,
-        "totalFireResistance": 120,
-        "totalThreat": 100,
-        "combatLevel": 100,
-        "staminaLevel": 100,
-        "intelligenceLevel": 100,
-        "attackLevel": 100,
-        "meleeLevel": 100,
-        "defenseLevel": 100,
-        "rangedLevel": 0,
-        "magicLevel": 0,
-        "combatStats": {
-          "combatStyleHrids": [
-            "/combat_styles/stab"
-          ],
-          "damageType": "/damage_types/physical",
-          "attackInterval": 1700000000,
-          "abilityHaste": 80,
-          "stabAccuracy": 3.3,
-          "stabDamage": 0.2,
-          "maxHitpointsRatio": 199,
-          "maxManapointsRatio": 199,
-          "stabEvasion": 3.3,
-          "slashEvasion": 3.3,
-          "smashEvasion": 3.3,
-          "rangedEvasion": 4.5,
-          "magicEvasion": 2.2,
-          "armor": 180,
-          "waterResistance": 100,
-          "natureResistance": 100,
-          "fireResistance": 100,
-          "tenacity": 3000
-        }
-      },
-      "abilities": [
-        {
-          "abilityHrid": "/abilities/fierce_aura",
-          "level": 40,
-          "minDifficultyTier": 0
+        "hrid": "/monsters/trial_wasp",
+        "name": "Trial Wasp",
+        "isLabyrinthMonster": false,
+        "isGuildMonster": true,
+        "enrageTime": 600000000000,
+        "experience": 0,
+        "combatDetails": {
+            "currentHitpoints": 220000,
+            "maxHitpoints": 220000,
+            "currentManapoints": 220000,
+            "maxManapoints": 220000,
+            "attackInterval": 2476190476,
+            "totalCastSpeed": 0.05,
+            "stabAccuracyRating": 473,
+            "slashAccuracyRating": 110,
+            "smashAccuracyRating": 110,
+            "rangedAccuracyRating": 110,
+            "magicAccuracyRating": 110,
+            "defensiveMaxDamage": 110,
+            "stabMaxDamage": 132,
+            "slashMaxDamage": 110,
+            "smashMaxDamage": 110,
+            "rangedMaxDamage": 10,
+            "magicMaxDamage": 10,
+            "stabEvasionRating": 473,
+            "slashEvasionRating": 473,
+            "smashEvasionRating": 473,
+            "rangedEvasionRating": 605,
+            "magicEvasionRating": 352,
+            "totalArmor": 200,
+            "totalWaterResistance": 120,
+            "totalNatureResistance": 120,
+            "totalFireResistance": 120,
+            "totalThreat": 100,
+            "combatLevel": 100,
+            "staminaLevel": 100,
+            "intelligenceLevel": 100,
+            "attackLevel": 100,
+            "meleeLevel": 100,
+            "defenseLevel": 100,
+            "rangedLevel": 0,
+            "magicLevel": 0,
+            "combatStats": {
+                "combatStyleHrids": [
+                    "/combat_styles/stab"
+                ],
+                "damageType": "/damage_types/physical",
+                "attackInterval": 2600000000,
+                "stabAccuracy": 3.3,
+                "stabDamage": 0.2,
+                "maxHitpointsRatio": 199,
+                "maxManapointsRatio": 199,
+                "stabEvasion": 3.3,
+                "slashEvasion": 3.3,
+                "smashEvasion": 3.3,
+                "rangedEvasion": 4.5,
+                "magicEvasion": 2.2,
+                "armor": 180,
+                "waterResistance": 100,
+                "natureResistance": 100,
+                "fireResistance": 100,
+                "tenacity": 3000
+            }
         },
-        {
-          "abilityHrid": "/abilities/frenzy",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/penetrating_strike",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/puncture",
-          "level": 60,
-          "minDifficultyTier": 0
-        },
-        {
-          "abilityHrid": "/abilities/impale",
-          "level": 60,
-          "minDifficultyTier": 0
-        }
-      ],
-      "dropTable": null,
-      "rareDropTable": null
+        "abilities": [
+            {
+                "abilityHrid": "/abilities/fierce_aura",
+                "level": 40,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/frenzy",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/penetrating_strike",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/puncture",
+                "level": 60,
+                "minDifficultyTier": 0
+            },
+            {
+                "abilityHrid": "/abilities/impale",
+                "level": 60,
+                "minDifficultyTier": 0
+            }
+        ],
+        "dropTable": null,
+        "rareDropTable": null
     }
 }

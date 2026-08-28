@@ -274,6 +274,16 @@ pub struct BoostResult {
     pub flat_boost: f64,
 }
 
+// -- BuffInstance (per-source buff application, for strongest-active tracking) -
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct BuffInstance {
+    buff: Buff,
+    /// Index (in the simulator's unit list) of the unit that applied this
+    /// buff. Re-applying from the same source replaces its own instance.
+    source: usize,
+}
+
 // -- CombatUnit ---------------------------------------------------------------
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -306,8 +316,17 @@ pub struct CombatUnit {
     pub drinks: [Option<Consumable>; 3],
     pub house_rooms: Vec<HouseRoom>,
 
-    /// combat buffs indexed by unique_hrid
+    /// Effective (strongest-active) buff per unique_hrid — derived from
+    /// `buff_instances` on every add/remove/expiry. This is what
+    /// get_buff_boost(s) reads.
     pub combat_buffs: HashMap<String, Buff>,
+    /// Per-source buff instances, keyed by unique_hrid. Multiple units can
+    /// apply the same unique_hrid buff (e.g. several players with the same
+    /// aura ability at different levels); each keeps its own timer, and
+    /// `combat_buffs` always reflects the strongest instance still active.
+    /// When the strongest expires, the next-strongest surviving instance
+    /// takes over automatically.
+    buff_instances: HashMap<String, Vec<BuffInstance>>,
     /// permanent buffs indexed by type_hrid (aggregated)
     pub permanent_buffs: HashMap<String, Buff>,
     pub zone_buffs: Vec<Buff>,
@@ -364,6 +383,7 @@ impl CombatUnit {
             drinks: [None, None, None],
             house_rooms: Vec::new(),
             combat_buffs: HashMap::new(),
+            buff_instances: HashMap::new(),
             permanent_buffs: HashMap::new(),
             zone_buffs: Vec::new(),
             extra_buffs: Vec::new(),
@@ -411,46 +431,120 @@ impl CombatUnit {
     }
 
     // -- Add / remove buffs ---------------------------------------------------
+    //
+    // Multiple units can apply the same unique_hrid buff (e.g. several players
+    // with the same aura ability at different levels, or several monsters
+    // inflicting the same debuff). Each application is tracked as its own
+    // timed instance, keyed by the applying unit's index ("source"); the
+    // effective value exposed via `combat_buffs` (and thus get_buff_boost) is
+    // always the strongest still-active instance. When the strongest expires,
+    // the next-strongest surviving instance takes over automatically.
 
-    pub fn add_buff(&mut self, mut buff: Buff, current_time: i64) -> bool {
-        let needs_update = self.combat_buffs.get(&buff.unique_hrid)
-            .map(|existing| existing.ratio_boost != buff.ratio_boost || existing.flat_boost != buff.flat_boost)
-            .unwrap_or(true);
+    fn instance_active(inst: &BuffInstance, current_time: i64) -> bool {
+        inst.buff.duration <= 0 || inst.buff.start_time + inst.buff.duration > current_time
+    }
 
+    /// Larger |ratio_boost| wins, then larger |flat_boost|, then later expiry
+    /// (never-expiring instances, duration <= 0, treated as +infinity). Magnitude
+    /// (not signed value) matters because debuffs carry negative boosts and
+    /// "stronger" means larger effect either way.
+    fn stronger_instance<'a>(a: &'a BuffInstance, b: &'a BuffInstance) -> &'a BuffInstance {
+        let ar = a.buff.ratio_boost.abs();
+        let br = b.buff.ratio_boost.abs();
+        if ar != br { return if ar > br { a } else { b }; }
+        let af = a.buff.flat_boost.abs();
+        let bf = b.buff.flat_boost.abs();
+        if af != bf { return if af > bf { a } else { b }; }
+        let ae = if a.buff.duration <= 0 { i64::MAX } else { a.buff.start_time + a.buff.duration };
+        let be = if b.buff.duration <= 0 { i64::MAX } else { b.buff.start_time + b.buff.duration };
+        if ae >= be { a } else { b }
+    }
+
+    fn effective_instance(instances: &[BuffInstance]) -> Option<Buff> {
+        instances.iter()
+            .fold(None, |best: Option<&BuffInstance>, inst| Some(match best {
+                Some(b) => Self::stronger_instance(b, inst),
+                None => inst,
+            }))
+            .map(|inst| inst.buff.clone())
+    }
+
+    /// Recompute the effective view for `unique_hrid` from its instance list
+    /// and write it into `combat_buffs` (removing the key if the list is
+    /// empty). Returns whether the effective ratio/flat boost changed.
+    fn commit_instances(&mut self, unique_hrid: &str) -> bool {
+        let prev = self.combat_buffs.get(unique_hrid).cloned();
+        let effective = self.buff_instances.get(unique_hrid)
+            .and_then(|instances| Self::effective_instance(instances));
+
+        match effective {
+            None => {
+                self.buff_instances.remove(unique_hrid);
+                self.combat_buffs.remove(unique_hrid).is_some()
+            }
+            Some(eff) => {
+                let changed = prev
+                    .map(|p| p.ratio_boost != eff.ratio_boost || p.flat_boost != eff.flat_boost)
+                    .unwrap_or(true);
+                self.combat_buffs.insert(unique_hrid.to_string(), eff);
+                changed
+            }
+        }
+    }
+
+    /// Apply one buff instance from `source` and return whether the effective
+    /// (strongest-active) view for its unique_hrid changed.
+    fn apply_buff_instance(&mut self, mut buff: Buff, current_time: i64, source: usize) -> bool {
         buff.start_time = current_time;
-        self.combat_buffs.insert(buff.unique_hrid.clone(), buff);
-
-        if needs_update {
-            self.update_combat_details();
-        }
-        needs_update
+        let hrid = buff.unique_hrid.clone();
+        let entry = self.buff_instances.entry(hrid.clone()).or_default();
+        // Same-source re-apply replaces its own instance (buff refresh); drop
+        // any instance that has since expired.
+        entry.retain(|inst| inst.source != source && Self::instance_active(inst, current_time));
+        entry.push(BuffInstance { buff, source });
+        self.commit_instances(&hrid)
     }
 
-    pub fn add_buffs(&mut self, buffs: Vec<Buff>, current_time: i64) {
+    pub fn add_buff(&mut self, buff: Buff, current_time: i64, source: usize) -> bool {
+        let changed = self.apply_buff_instance(buff, current_time, source);
+        if changed {
+            self.update_combat_details();
+        }
+        changed
+    }
+
+    pub fn add_buffs(&mut self, buffs: Vec<Buff>, current_time: i64, source: usize) {
         let mut needs_update = false;
-        for mut buff in buffs {
-            let changed = self.combat_buffs.get(&buff.unique_hrid)
-                .map(|existing| existing.ratio_boost != buff.ratio_boost || existing.flat_boost != buff.flat_boost)
-                .unwrap_or(true);
-            buff.start_time = current_time;
-            self.combat_buffs.insert(buff.unique_hrid.clone(), buff);
-            if changed { needs_update = true; }
+        for buff in buffs {
+            if self.apply_buff_instance(buff, current_time, source) {
+                needs_update = true;
+            }
         }
         if needs_update {
             self.update_combat_details();
         }
     }
 
-    pub fn remove_buff_by_unique(&mut self, unique_hrid: &str) {
-        if self.combat_buffs.remove(unique_hrid).is_some() {
+    /// Remove `source`'s instance of the given unique_hrid buff (if any). The
+    /// next-strongest surviving instance from another source, if any, takes
+    /// over as the effective value.
+    pub fn remove_buff_by_unique(&mut self, unique_hrid: &str, source: usize) {
+        let Some(entry) = self.buff_instances.get_mut(unique_hrid) else { return };
+        let before = entry.len();
+        entry.retain(|inst| inst.source != source);
+        if entry.len() == before { return; }
+        if self.commit_instances(unique_hrid) {
             self.update_combat_details();
         }
     }
 
-    pub fn remove_buffs(&mut self, buffs: &[Buff]) {
+    pub fn remove_buffs(&mut self, buffs: &[Buff], source: usize) {
         let mut changed = false;
         for buff in buffs {
-            if self.combat_buffs.remove(&buff.unique_hrid).is_some() {
+            let Some(entry) = self.buff_instances.get_mut(&buff.unique_hrid) else { continue };
+            let before = entry.len();
+            entry.retain(|inst| inst.source != source);
+            if entry.len() != before && self.commit_instances(&buff.unique_hrid) {
                 changed = true;
             }
         }
@@ -492,18 +586,17 @@ impl CombatUnit {
     }
 
     pub fn remove_expired_buffs(&mut self, current_time: i64) {
-        let to_remove: Vec<String> = self.combat_buffs
-            .iter()
-            .filter(|(_, b)| b.duration > 0 && b.start_time + b.duration <= current_time)
-            .map(|(k, _)| k.clone())
-            .collect();
-        for key in to_remove {
-            self.combat_buffs.remove(&key);
+        let hrids: Vec<String> = self.buff_instances.keys().cloned().collect();
+        for hrid in hrids {
+            let entry = self.buff_instances.get_mut(&hrid).unwrap();
+            entry.retain(|inst| Self::instance_active(inst, current_time));
+            self.commit_instances(&hrid);
         }
         self.update_combat_details();
     }
 
     pub fn clear_buffs(&mut self) {
+        self.buff_instances.clear();
         self.combat_buffs = self.permanent_buffs.values().cloned()
             .map(|b| (b.unique_hrid.clone(), b))
             .collect();
@@ -809,9 +902,25 @@ impl CombatUnit {
         self.combat_details.tenacity = self.combat_details.combat_stats.tenacity;
     }
 
-    /// Implemented by concrete types; default delegates to base
+    /// Dispatches to the monster-specific recompute (which re-applies the
+    /// guild-trial participant scaling on every call, not just at spawn) for
+    /// monsters, or the shared base recompute for players (players go through
+    /// PlayerExt::player_update_combat_details for their own initial build,
+    /// which already ends with update_combat_details_base()).
+    ///
+    /// This matters because ANY buff change (an aura landing, a curse tick,
+    /// anything) calls this generic path. Before this fix, that always ran
+    /// update_combat_details_base() alone, which restores combat_stats from
+    /// base_combat_stats — a snapshot taken BEFORE monster_update_combat_details
+    /// applies the +2%/+2%/+2 participant bonus. So the first buff event of
+    /// the fight silently erased a guild monster's participant scaling for
+    /// the rest of the encounter.
     pub fn update_combat_details(&mut self) {
-        self.update_combat_details_base();
+        if self.is_player {
+            self.update_combat_details_base();
+        } else {
+            crate::combatsimulator::monster::monster_update_combat_details(self);
+        }
     }
 
     // -- Helpers --------------------------------------------------------------
@@ -916,5 +1025,53 @@ impl CombatUnit {
         s.attack_interval     = b.attack_interval;
         s.attack_speed        = b.attack_speed;
         s.damage_taken        = 0.0; // always from buffs only
+    }
+}
+#[cfg(test)]
+mod strongest_buff_tests {
+    use super::*;
+
+    fn flat_buff(unique: &str, type_hrid: &str, flat: f64, duration: i64) -> Buff {
+        Buff::inline(unique, type_hrid, 0.0, flat, duration)
+    }
+
+    #[test]
+    fn strongest_instance_wins_and_falls_back_on_expiry() {
+        let mut unit = CombatUnit::new_base();
+
+        // source 1 (weak, long duration): flat 0.06, applied at t=0, expires t=100
+        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.06, 100), 0, 1);
+        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.06);
+
+        // source 2 (strong, short duration): flat 0.10, applied at t=10, expires t=60
+        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.10, 50), 10, 2);
+        // Strongest active instance wins regardless of recency.
+        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.10);
+
+        // Source 1 re-applies a weak refresh in between — still weaker than source 2.
+        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.06, 100), 30, 1);
+        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.10);
+
+        // Source 2's instance expires (t=61 > 60); source 1's (started t=30, duration 100, expires t=130) survives.
+        unit.remove_expired_buffs(61);
+        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.06);
+
+        // Both expire eventually -> buff fully gone.
+        unit.remove_expired_buffs(131);
+        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.0);
+    }
+
+    #[test]
+    fn removing_one_source_falls_back_to_next_strongest() {
+        let mut unit = CombatUnit::new_base();
+        unit.add_buff(flat_buff("/buff_uniques/x", "/buff_types/damage", 0.05, 1000), 0, 1);
+        unit.add_buff(flat_buff("/buff_uniques/x", "/buff_types/damage", 0.20, 1000), 0, 2);
+        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.20);
+
+        unit.remove_buff_by_unique("/buff_uniques/x", 2);
+        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.05);
+
+        unit.remove_buff_by_unique("/buff_uniques/x", 1);
+        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.0);
     }
 }

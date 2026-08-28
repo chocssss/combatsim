@@ -1,4 +1,5 @@
 use rand::Rng;
+use rand::seq::SliceRandom;
 use serde_json::Value;
 
 use crate::combatsimulator::{
@@ -68,6 +69,7 @@ pub struct CombatSimulator {
     wipe_log_max: usize,
     market_prices: Option<std::collections::HashMap<String, f64>>,
     stop_after_dungeon_result: bool,
+    guild_trial_mode: bool,
 }
 
 impl CombatSimulator {
@@ -113,6 +115,7 @@ impl CombatSimulator {
             wipe_log_max,
             market_prices,
             stop_after_dungeon_result: false,
+            guild_trial_mode: false,
         }
     }
 
@@ -122,6 +125,14 @@ impl CombatSimulator {
     /// single attempt rather than a repeatedly-farmed dungeon.
     pub fn set_stop_after_dungeon_result(&mut self, stop: bool) {
         self.stop_after_dungeon_result = stop;
+    }
+
+    /// Guild-trial-only parry rule: each incoming attack can receive up to 5
+    /// parry attempts, one per parry-capable unit (e.g. Regal Sword users) in
+    /// the party, each rolling independently; the first success cancels the
+    /// whole attack. Zone/labyrinth keep the legacy single-roll model.
+    pub fn set_guild_trial_mode(&mut self, enabled: bool) {
+        self.guild_trial_mode = enabled;
     }
 
     // -- Wipe logs -------------------------------------------------------------
@@ -183,6 +194,23 @@ impl CombatSimulator {
             }
             if self.stop_after_dungeon_result && self.sim_result.dungeon_attempt_won.is_some() {
                 break;
+            }
+        }
+
+        // If the attempt neither cleared nor wiped (e.g. the caller's time_limit
+        // ran out mid-encounter), still record how much enemy HP was left so a
+        // guild-staircase timeout can report "how close" the party got, same as
+        // a wipe does below.
+        if self.sim_result.dungeon_attempt_won.is_none() {
+            if let Some(ei) = self.enemy_indices.clone() {
+                let total_max: i64 = ei.iter().map(|&i| self.units[i].combat_details.max_hitpoints).sum();
+                let total_cur: i64 = ei.iter()
+                    .map(|&i| self.units[i].combat_details.current_hitpoints.max(0))
+                    .sum();
+                if total_max > 0 {
+                    self.sim_result.enemy_hp_pct_remaining =
+                        Some(total_cur as f64 / total_max as f64 * 100.0);
+                }
             }
         }
 
@@ -488,12 +516,24 @@ impl CombatSimulator {
 
     fn check_parry(&self, target_indices: &[UnitIdx]) -> Option<UnitIdx> {
         let mut rng = rand::thread_rng();
-        let parry_units: Vec<UnitIdx> = target_indices.iter()
+        let mut parry_units: Vec<UnitIdx> = target_indices.iter()
             .copied()
             .filter(|&i| self.units[i].combat_details.current_hitpoints > 0
                 && self.units[i].combat_details.combat_stats.parry > 0.0)
             .collect();
         if parry_units.is_empty() { return None; }
+
+        if self.guild_trial_mode {
+            // Each incoming attack can receive at most 5 parry attempts, one per
+            // parry-capable unit (e.g. Regal Sword users); every eligible unit up
+            // to that cap rolls independently and the first success cancels the
+            // whole attack.
+            parry_units.shuffle(&mut rng);
+            return parry_units.into_iter()
+                .take(5)
+                .find(|&u| self.units[u].combat_details.combat_stats.parry > rng.gen::<f64>());
+        }
+
         let u = parry_units[rng.gen_range(0..parry_units.len())];
         if self.units[u].combat_details.combat_stats.parry > rng.gen::<f64>() { Some(u) } else { None }
     }
@@ -783,6 +823,17 @@ impl CombatSimulator {
                 self.wipe_log_count = 0;
                 self.sim_result.dungeon_attempt_won = Some(false);
 
+                if let Some(ei) = self.enemy_indices.clone() {
+                    let total_max: i64 = ei.iter().map(|&i| self.units[i].combat_details.max_hitpoints).sum();
+                    let total_cur: i64 = ei.iter()
+                        .map(|&i| self.units[i].combat_details.current_hitpoints.max(0))
+                        .sum();
+                    if total_max > 0 {
+                        self.sim_result.enemy_hp_pct_remaining =
+                            Some(total_cur as f64 / total_max as f64 * 100.0);
+                    }
+                }
+
                 for type_str in &[
                     crate::combatsimulator::events::AUTO_ATTACK,
                     crate::combatsimulator::events::ABILITY_CAST_END,
@@ -833,6 +884,13 @@ impl CombatSimulator {
             matches!(&e.kind, EventKind::AutoAttack { source } if *source == source_idx)
             || matches!(&e.kind, EventKind::AbilityCastEnd { source, .. } if *source == source_idx)
         }).is_some();
+        if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
+            if self.units[source_idx].hrid == trace_hrid {
+                eprintln!("TRACE t={} add_next_attack_event ENTER already_scheduled={} is_stunned={} is_silenced={} is_blinded={}",
+                    self.simulation_time, already, self.units[source_idx].is_stunned,
+                    self.units[source_idx].is_silenced, self.units[source_idx].is_blinded);
+            }
+        }
         if already { return; }
 
         let is_player = self.units[source_idx].is_player;
@@ -913,6 +971,11 @@ impl CombatSimulator {
 
         if !self.units[source_idx].is_blinded {
             let interval = self.units[source_idx].combat_details.combat_stats.attack_interval as i64;
+            if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
+                if self.units[source_idx].hrid == trace_hrid {
+                    eprintln!("TRACE t={} SCHEDULE_AUTOATTACK next_at={} interval={} haste={}", sim_time, sim_time + interval, interval, haste);
+                }
+            }
             self.event_queue.add_event(CombatEvent {
                 time: sim_time + interval,
                 kind: EventKind::AutoAttack { source: source_idx },
@@ -1050,6 +1113,12 @@ impl CombatSimulator {
             None => return false,
         };
 
+        if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
+            if self.units[source_idx].hrid == trace_hrid {
+                eprintln!("TRACE t={} CAST {} (idx={})", self.simulation_time, ability.hrid, ability_idx);
+            }
+        }
+
         if self.units[source_idx].is_player {
             let cost = ability.mana_cost;
             let hrid = ability.hrid.clone();
@@ -1151,7 +1220,7 @@ impl CombatSimulator {
                     cur.ratio_boost *= mult;
                 }
                 let t = self.simulation_time;
-                self.units[tgt].add_buff(cur.clone(), t);
+                self.units[tgt].add_buff(cur.clone(), t, source_idx);
                 let dur = cur.duration;
                 self.event_queue.add_event(CombatEvent {
                     time: self.simulation_time + dur,
@@ -1258,7 +1327,7 @@ impl CombatSimulator {
                 if let Some(ref buffs) = effect.buffs {
                     for buff in buffs {
                         let t = self.simulation_time;
-                        self.units[actual_target].add_buff(buff.clone(), t);
+                        self.units[actual_target].add_buff(buff.clone(), t, source_idx);
                         let dur = buff.duration;
                         self.event_queue.add_event(CombatEvent {
                             time: self.simulation_time + dur,
@@ -1289,6 +1358,13 @@ impl CombatSimulator {
                     self.units[actual_target].is_stunned = true;
                     let exp = self.simulation_time + effect.stun_duration;
                     self.units[actual_target].stun_expire_time = Some(exp);
+                    if self.units[actual_target].is_player {
+                        self.sim_result.stuns_applied_on_players += 1;
+                        self.sim_result.stun_seconds_on_players += effect.stun_duration as f64 / 1e9;
+                    } else {
+                        self.sim_result.stuns_applied_on_monsters += 1;
+                        self.sim_result.stun_seconds_on_monsters += effect.stun_duration as f64 / 1e9;
+                    }
                     let at = actual_target;
                     self.event_queue.clear_matching(|e| matches!(&e.kind,
                         EventKind::AutoAttack { source } | EventKind::AbilityCastEnd { source, .. } | EventKind::StunExpiration { source }
@@ -1635,7 +1711,7 @@ impl CombatSimulator {
             let acc_buff = Buff::inline("/buff_uniques/enrage_accuracy", "/buff_types/accuracy",
                 now_stack as f64 * 0.1, 0.0, ENRAGE_TICK_INTERVAL);
             let t = self.simulation_time;
-            self.units[i].add_buffs(vec![dmg_buff, acc_buff], t);
+            self.units[i].add_buffs(vec![dmg_buff, acc_buff], t, i);
             self.sim_result.max_enrage_stack = self.sim_result.max_enrage_stack.max(now_stack);
         }
 
@@ -1803,7 +1879,7 @@ impl CombatSimulator {
                 cur.duration = (cur.duration as f64 / (1.0 + conc)) as i64;
             }
             let t = self.simulation_time;
-            self.units[source_idx].add_buff(cur.clone(), t);
+            self.units[source_idx].add_buff(cur.clone(), t, source_idx);
             let dur = cur.duration;
             self.event_queue.add_event(CombatEvent {
                 time: self.simulation_time + dur,
@@ -1829,7 +1905,7 @@ impl CombatSimulator {
         let buff = Buff::inline("/buff_uniques/curse", "/buff_types/damage_taken",
             0.0, curse_stat * new_amount as f64, curse_expire);
         let t = self.simulation_time;
-        self.units[target_idx].add_buff(buff, t);
+        self.units[target_idx].add_buff(buff, t, source_idx);
         self.event_queue.add_event(CombatEvent {
             time: self.simulation_time + curse_expire,
             kind: EventKind::CurseExpiration { source: target_idx, curse_amount: new_amount },
@@ -1855,14 +1931,14 @@ impl CombatSimulator {
             let dmg_buff = Buff::inline("/buff_uniques/fury_damage", "/buff_types/fury_damage",
                 new_amount * fury_stat, 0.0, fury_expire);
             let t = self.simulation_time;
-            self.units[source_idx].add_buffs(vec![acc_buff, dmg_buff], t);
+            self.units[source_idx].add_buffs(vec![acc_buff, dmg_buff], t, source_idx);
             self.event_queue.add_event(CombatEvent {
                 time: self.simulation_time + fury_expire,
                 kind: EventKind::FuryExpiration { source: source_idx, fury_amount: new_amount },
             });
         } else {
-            self.units[source_idx].remove_buff_by_unique("/buff_uniques/fury_accuracy");
-            self.units[source_idx].remove_buff_by_unique("/buff_uniques/fury_damage");
+            self.units[source_idx].remove_buff_by_unique("/buff_uniques/fury_accuracy", source_idx);
+            self.units[source_idx].remove_buff_by_unique("/buff_uniques/fury_damage", source_idx);
         }
     }
 
@@ -1880,7 +1956,7 @@ impl CombatSimulator {
         let buff = Buff::inline("/buff_uniques/weaken", "/buff_types/damage",
             -1.0 * weaken_stat * new_amount as f64, 0.0, weaken_expire);
         let t = self.simulation_time;
-        self.units[source_idx].add_buff(buff, t);
+        self.units[source_idx].add_buff(buff, t, target_idx);
         self.event_queue.add_event(CombatEvent {
             time: self.simulation_time + weaken_expire,
             kind: EventKind::WeakenExpiration { source: source_idx, weaken_amount: new_amount },

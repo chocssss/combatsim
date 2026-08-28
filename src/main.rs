@@ -363,7 +363,9 @@ fn print_usage() {
     eprintln!("                    with full HP/MP and cooldowns restored between tiers.");
     eprintln!("                    Stops on the first wipe or after 1 simulated hour total.");
     eprintln!("                    Disables all consumables and grants a flat +3% HP/MP");
-    eprintln!("                    regen buff.");
+    eprintln!("                    regen buff. Combine with --runs N to climb the staircase");
+    eprintln!("                    N times in parallel and report, per guild level, the");
+    eprintln!("                    average attempt duration and % of runs that cleared it.");
 }
 
 fn list_zones() {
@@ -841,42 +843,44 @@ fn run_all_zones(
     }
 }
 
-/// --guild: climb a trial zone's guild-level staircase (100, 110, 120, ... up to 300).
+const GUILD_START: i32 = 100;
+const GUILD_STEP: i32 = 10;
+const GUILD_MAX: i32 = 300;
+const GUILD_TIME_BUDGET: i64 = 3600 * 1_000_000_000; // 1 simulated hour, ns
+
+struct GuildLevelAttempt {
+    guild: i32,
+    won: Option<bool>, // Some(true) = cleared, Some(false) = wiped, None = timed out
+    duration_ns: i64,
+    // % of boss/enemy hitpoints remaining at the moment of a wipe, or when the
+    // attempt was cut off by the guild time budget (None only on a clear).
+    boss_hp_pct: Option<f64>,
+    // Total player deaths during this attempt.
+    deaths: i32,
+    // Total damage dealt / healing received by the party, summed across all players.
+    total_damage_dealt: i64,
+    total_healing_done: i64,
+}
+
+/// Climbs a trial zone's guild-level staircase (100, 110, 120, ... up to 300) once.
 /// Each tier is a single attempt against a fully healed party with cooldowns reset
-/// (a fresh CombatSimulator/CombatUnit set does this naturally). The whole climb is
+/// (a fresh CombatSimulator/CombatUnit set does this naturally). The climb is
 /// capped at 1 hour of cumulative simulated time and stops the moment the party wipes.
-fn run_guild_staircase(
+fn run_one_guild_staircase(
     args: &Args,
     player_dtos: &[serde_json::Value],
     extra_buffs: &[combatsimulator::buff::Buff],
     market_prices: Option<&std::collections::HashMap<String, f64>>,
-) {
-    const START_GUILD: i32 = 100;
-    const STEP: i32 = 10;
-    const MAX_GUILD: i32 = 300;
-    const TOTAL_TIME_BUDGET: i64 = 3600 * 1_000_000_000; // 1 simulated hour, ns
-
-    println!("=== MWI Guild Trial Staircase: {} ===", args.zone);
-    println!("{:<10} {:<10} {:>10}", "Guild", "Result", "Duration");
-    println!("{}", "-".repeat(32));
-
+) -> Vec<GuildLevelAttempt> {
+    let mut attempts = Vec::new();
     let mut time_used: i64 = 0;
-    let mut highest_cleared: Option<i32> = None;
-    let mut guild = START_GUILD;
+    let mut guild = GUILD_START;
 
     loop {
-        if guild > MAX_GUILD {
-            println!();
-            println!("Reached the guild level cap ({}) without wiping.", MAX_GUILD);
-            break;
-        }
+        if guild > GUILD_MAX { break; }
 
-        let remaining = TOTAL_TIME_BUDGET - time_used;
-        if remaining <= 0 {
-            println!();
-            println!("1-hour simulated time budget exhausted before attempting guild level {}.", guild);
-            break;
-        }
+        let remaining = GUILD_TIME_BUDGET - time_used;
+        if remaining <= 0 { break; }
 
         let zone = Some(Zone::new(args.zone.clone(), guild));
         let players: Vec<CombatUnit> = player_dtos.iter().map(|dto| {
@@ -888,40 +892,248 @@ fn run_guild_staircase(
 
         let mut sim = CombatSimulator::new(players, zone, None, false, market_prices.cloned());
         sim.set_stop_after_dungeon_result(true);
+        sim.set_guild_trial_mode(true);
         let result = sim.simulate(remaining).clone();
         time_used += result.simulated_time;
 
-        let duration = format!("{:.1}s", result.simulated_time as f64 / 1e9);
+        let won = result.dungeon_attempt_won;
+        let deaths: i32 = result.player_deaths.values().sum();
+        let total_damage_dealt: i64 = result.player_damage_dealt.values().sum();
+        let total_healing_done: i64 = result.hitpoints_gained.values()
+            .flat_map(|by_source| by_source.values())
+            .sum();
+        attempts.push(GuildLevelAttempt {
+            guild,
+            won,
+            duration_ns: result.simulated_time,
+            boss_hp_pct: result.enemy_hp_pct_remaining,
+            deaths,
+            total_damage_dealt,
+            total_healing_done,
+        });
 
-        match result.dungeon_attempt_won {
-            Some(true) => {
-                println!("{:<10} {:<10} {:>10}", guild, "CLEARED", duration);
-                highest_cleared = Some(guild);
-                guild += STEP;
-            }
-            Some(false) => {
-                println!("{:<10} {:<10} {:>10}", guild, "WIPED", duration);
-                println!();
-                println!("Party wiped at guild level {}.", guild);
-                break;
-            }
-            None => {
-                println!("{:<10} {:<10} {:>10}", guild, "TIMEOUT", duration);
-                println!();
-                println!("Attempt at guild level {} did not resolve within the remaining time budget.", guild);
-                break;
+        if won == Some(true) {
+            guild += GUILD_STEP;
+        } else {
+            break;
+        }
+    }
+
+    attempts
+}
+
+/// Runs `args.runs` independent guild staircase climbs in parallel and reports,
+/// per guild level, the average attempt duration and the % of runs that cleared it.
+fn run_guild_staircase(
+    args: &Args,
+    player_dtos: &[serde_json::Value],
+    extra_buffs: &[combatsimulator::buff::Buff],
+    market_prices: Option<&std::collections::HashMap<String, f64>>,
+) {
+    let all_runs: Vec<Vec<GuildLevelAttempt>> = (0..args.runs)
+        .into_par_iter()
+        .map(|_| run_one_guild_staircase(args, player_dtos, extra_buffs, market_prices))
+        .collect();
+
+    println!("=== MWI Guild Trial Staircase: {} ({} run{}) ===",
+        args.zone, args.runs, if args.runs == 1 { "" } else { "s" });
+    println!("{:<8} {:>10} {:>10} {:>14} {:>11} {:>12} {:>12} {:>18}",
+        "Guild", "Attempts", "Cleared%", "Avg Duration", "Avg Deaths", "Avg DPS", "Avg HPS", "Avg Boss HP% (wipe/timeout)");
+    println!("{}", "-".repeat(113));
+
+    let mut guild = GUILD_START;
+    while guild <= GUILD_MAX {
+        let level_attempts: Vec<&GuildLevelAttempt> = all_runs.iter()
+            .flat_map(|run| run.iter())
+            .filter(|a| a.guild == guild)
+            .collect();
+
+        if level_attempts.is_empty() { guild += GUILD_STEP; continue; }
+
+        let n = level_attempts.len();
+        let cleared = level_attempts.iter().filter(|a| a.won == Some(true)).count();
+        let cleared_pct = cleared as f64 / n as f64 * 100.0;
+        let avg_duration = level_attempts.iter().map(|a| a.duration_ns as f64).sum::<f64>()
+            / n as f64 / 1e9;
+        let avg_deaths = level_attempts.iter().map(|a| a.deaths as f64).sum::<f64>() / n as f64;
+
+        let per_attempt_dps_hps = |dur_ns: i64, total: i64| -> f64 {
+            if dur_ns > 0 { total as f64 / (dur_ns as f64 / 1e9) } else { 0.0 }
+        };
+        let avg_dps = level_attempts.iter()
+            .map(|a| per_attempt_dps_hps(a.duration_ns, a.total_damage_dealt))
+            .sum::<f64>() / n as f64;
+        let avg_hps = level_attempts.iter()
+            .map(|a| per_attempt_dps_hps(a.duration_ns, a.total_healing_done))
+            .sum::<f64>() / n as f64;
+
+        let boss_hp_pcts: Vec<f64> = level_attempts.iter()
+            .filter_map(|a| a.boss_hp_pct)
+            .collect();
+        let avg_boss_hp = if boss_hp_pcts.is_empty() {
+            "n/a".to_string()
+        } else {
+            format!("{:.1}%", boss_hp_pcts.iter().sum::<f64>() / boss_hp_pcts.len() as f64)
+        };
+
+        println!("{:<8} {:>10} {:>9.1}% {:>13.1}s {:>11.2} {:>12.0} {:>12.0} {:>27}",
+            guild, n, cleared_pct, avg_duration, avg_deaths, avg_dps, avg_hps, avg_boss_hp);
+        guild += GUILD_STEP;
+    }
+
+    // Per-run summary: highest guild level cleared (0 if the run failed at the start level).
+    let highest_cleared: Vec<i32> = all_runs.iter().map(|run| {
+        run.iter().filter(|a| a.won == Some(true)).map(|a| a.guild).max().unwrap_or(0)
+    }).collect();
+    let avg_highest = highest_cleared.iter().sum::<i32>() as f64 / highest_cleared.len() as f64;
+    let cap_reached = highest_cleared.iter().filter(|&&g| g == GUILD_MAX).count();
+
+    println!();
+    println!("Average highest guild level cleared: {:.1}", avg_highest);
+    if args.runs > 1 {
+        println!("Runs reaching cap ({}): {}/{}", GUILD_MAX, cap_reached, args.runs);
+    }
+}
+
+/// Temporary debug utility: dump one player's fully-computed combat_details
+/// (after equipment/buffs/abilities applied) as JSON, for cross-checking
+/// against another implementation's player stat computation.
+fn dump_one_player(name_filter: &str) {
+    let raw = { let mut s = String::new(); io::Read::read_to_string(&mut io::stdin(), &mut s).unwrap(); s };
+    let input: Value = serde_json::from_str(&raw).unwrap();
+    let player_dtos = parse_export(&input);
+    for dto in player_dtos.iter() {
+        if dto["hrid"].as_str().unwrap_or("") == name_filter {
+            let mut player = CombatUnit::create_from_dto(dto);
+            player.generate_permanent_buffs();
+            player.clear_buffs();
+            player.player_update_combat_details();
+            println!("{}", serde_json::to_string_pretty(&player.combat_details).unwrap());
+            return;
+        }
+    }
+    eprintln!("player '{}' not found", name_filter);
+}
+
+/// Temporary debug utility: run ONE fixed-tier guild-trial encounter (no
+/// staircase climbing) for a fixed simulated-time budget and dump aggregate
+/// combat statistics (damage, hit/miss counts, ability cast counts, stun
+/// counts) for cross-checking against another implementation's engine.
+fn dump_tier_stats(zone_hrid: &str, tier: i32, seconds: f64) {
+    let raw = { let mut s = String::new(); io::Read::read_to_string(&mut io::stdin(), &mut s).unwrap(); s };
+    let input: Value = serde_json::from_str(&raw).unwrap();
+    let mut player_dtos = parse_export(&input);
+    for dto in player_dtos.iter_mut() {
+        dto["food"] = json!([Value::Null, Value::Null, Value::Null]);
+        dto["drinks"] = json!([Value::Null, Value::Null, Value::Null]);
+    }
+
+    let zone = Some(Zone::new(zone_hrid.to_string(), tier));
+    let players: Vec<CombatUnit> = player_dtos.iter().map(|dto| {
+        let mut player = CombatUnit::create_from_dto(dto);
+        if let Some(ref z) = zone { player.zone_buffs = z.buffs.clone(); }
+        extra_regen_buffs().iter().for_each(|b| player.extra_buffs.push(b.clone()));
+        player
+    }).collect();
+
+    let mut sim = CombatSimulator::new(players, zone, None, false, None);
+    sim.set_guild_trial_mode(true);
+    let result = sim.simulate((seconds * 1e9) as i64).clone();
+
+    let mut player_hits = 0i64;
+    let mut player_misses = 0i64;
+    let mut monster_hits = 0i64;
+    let mut monster_misses = 0i64;
+    let mut player_damage_from_attacks = 0i64;
+    let mut monster_damage_from_attacks = 0i64;
+    let mut ability_casts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    let mut player_ability_casts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    let player_names: std::collections::HashSet<String> =
+        player_dtos.iter().filter_map(|d| d["hrid"].as_str().map(|s| s.to_string())).collect();
+
+    for (source, targets) in &result.attacks {
+        let is_player_source = player_names.contains(source);
+        for (_target, abilities) in targets {
+            for (ability, dmgmap) in abilities {
+                let mut count_for_ability = 0i64;
+                for (dmg_str, count) in dmgmap {
+                    count_for_ability += *count as i64;
+                    if dmg_str == "miss" {
+                        if is_player_source { player_misses += *count as i64; } else { monster_misses += *count as i64; }
+                    } else {
+                        let dmg: i64 = dmg_str.parse().unwrap_or(0);
+                        if is_player_source {
+                            player_hits += *count as i64;
+                            player_damage_from_attacks += dmg * (*count as i64);
+                        } else {
+                            monster_hits += *count as i64;
+                            monster_damage_from_attacks += dmg * (*count as i64);
+                        }
+                    }
+                }
+                if !is_player_source {
+                    *ability_casts.entry(ability.clone()).or_insert(0) += count_for_ability;
+                } else {
+                    *player_ability_casts.entry(ability.clone()).or_insert(0) += count_for_ability;
+                }
             }
         }
     }
 
-    println!();
-    match highest_cleared {
-        Some(lvl) => println!("Highest guild level cleared: {}", lvl),
-        None => println!("Failed to clear guild level {}.", START_GUILD),
-    }
+    let total_damage_dealt: i64 = result.player_damage_dealt.values().sum();
+    let total_damage_taken: i64 = result.player_damage_taken.values().sum();
+
+    let summary = json!({
+        "tier": tier,
+        "seconds_requested": seconds,
+        "simulated_time_s": result.simulated_time as f64 / 1e9,
+        "dungeon_attempt_won": result.dungeon_attempt_won,
+        "enemy_hp_pct_remaining": result.enemy_hp_pct_remaining,
+        "num_players": player_dtos.len(),
+        "total_damage_dealt_by_players": total_damage_dealt,
+        "total_damage_taken_by_players": total_damage_taken,
+        "player_damage_from_attacks_map": player_damage_from_attacks,
+        "monster_damage_from_attacks_map": monster_damage_from_attacks,
+        "player_hits": player_hits,
+        "player_misses": player_misses,
+        "player_accuracy": player_hits as f64 / (player_hits + player_misses).max(1) as f64,
+        "monster_hits": monster_hits,
+        "monster_misses": monster_misses,
+        "monster_accuracy": monster_hits as f64 / (monster_hits + monster_misses).max(1) as f64,
+        "monster_ability_casts": ability_casts,
+        "player_ability_casts": player_ability_casts,
+        "stuns_applied_on_players": result.stuns_applied_on_players,
+        "stun_seconds_on_players": result.stun_seconds_on_players,
+        "stuns_applied_on_monsters": result.stuns_applied_on_monsters,
+        "stun_seconds_on_monsters": result.stun_seconds_on_monsters,
+        "total_player_deaths": result.player_deaths.values().sum::<i32>(),
+    });
+    println!("{}", serde_json::to_string_pretty(&summary).unwrap());
+}
+
+fn extra_regen_buffs() -> Vec<Buff> {
+    vec![
+        Buff::inline("/buff_uniques/guild_hp_regen_buff", "/buff_types/hp_regen", 0.0, 0.03, 0),
+        Buff::inline("/buff_uniques/guild_mp_regen_buff", "/buff_types/mp_regen", 0.0, 0.03, 0),
+    ]
 }
 
 fn main() {
+    {
+        let args: Vec<String> = std::env::args().collect();
+        if let Some(pos) = args.iter().position(|a| a == "--dump-player") {
+            let name = args.get(pos + 1).cloned().unwrap_or_default();
+            dump_one_player(&name);
+            std::process::exit(0);
+        }
+        if let Some(pos) = args.iter().position(|a| a == "--dump-tier-stats") {
+            let zone = args.get(pos + 1).cloned().unwrap_or_default();
+            let tier: i32 = args.get(pos + 2).and_then(|s| s.parse().ok()).unwrap_or(230);
+            let seconds: f64 = args.get(pos + 3).and_then(|s| s.parse().ok()).unwrap_or(120.0);
+            dump_tier_stats(&zone, tier, seconds);
+            std::process::exit(0);
+        }
+    }
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
