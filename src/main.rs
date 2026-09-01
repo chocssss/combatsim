@@ -351,6 +351,12 @@ fn print_usage() {
     eprintln!("  --moo-pass        Apply Moo Pass XP bonus");
     eprintln!("  --com-exp N       Community XP buff level");
     eprintln!("  --com-drop N      Community drop buff level");
+    eprintln!("  --shrine-force N   Shrine of Force level 0-20 (+0.3%% damage/lvl)");
+    eprintln!("  --shrine-tempo N   Shrine of Tempo level 0-20 (+0.4%% attack speed/lvl, +0.4%% cast speed/lvl)");
+    eprintln!("  --shrine-spirit N  Shrine of Spirit level 0-20 (+1%% max HP/lvl, +1%% max MP/lvl)");
+    eprintln!("  --shrine-rarity N  Shrine of Rarity level 0-20 (+1.5%% rare find/lvl)");
+    eprintln!("  --shrine-scholar N Shrine of Scholar level 0-20 (+0.5%% combat XP/lvl)");
+    eprintln!("                    Applied identically to every player (guild shrines are guild-wide).");
     eprintln!("  --seal NAME       Apply a seal buff (repeatable). Names: seal_of_wisdom,");
     eprintln!("                    seal_of_damage, seal_of_attack_speed, seal_of_cast_speed,");
     eprintln!("                    seal_of_critical_rate, seal_of_combat_drop, seal_of_rare_find");
@@ -392,6 +398,11 @@ struct Args {
     moo_pass: bool,
     com_exp:  f64,
     com_drop: f64,
+    shrine_force:   i32,
+    shrine_tempo:   i32,
+    shrine_spirit:  i32,
+    shrine_rarity:  i32,
+    shrine_scholar: i32,
     pretty:   bool,
     simple:   bool,
     custom_monsters: Vec<String>,  // paths to JSON files
@@ -416,6 +427,11 @@ fn parse_args() -> Result<Args, String> {
     let mut moo_pass = false;
     let mut com_exp  = 0.0f64;
     let mut com_drop = 0.0f64;
+    let mut shrine_force   = 0i32;
+    let mut shrine_tempo   = 0i32;
+    let mut shrine_spirit  = 0i32;
+    let mut shrine_rarity  = 0i32;
+    let mut shrine_scholar = 0i32;
     let mut pretty   = false;
     let mut simple   = false;
     let mut custom_monsters: Vec<String> = Vec::new();
@@ -435,6 +451,11 @@ fn parse_args() -> Result<Args, String> {
             "--runs"     => { i += 1; runs     = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(1).max(1); },
             "--com-exp"  => { i += 1; com_exp  = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(0.0); },
             "--com-drop" => { i += 1; com_drop = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(0.0); },
+            "--shrine-force"   => { i += 1; shrine_force   = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--shrine-tempo"   => { i += 1; shrine_tempo   = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--shrine-spirit"  => { i += 1; shrine_spirit  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--shrine-rarity"  => { i += 1; shrine_rarity  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--shrine-scholar" => { i += 1; shrine_scholar = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
             "--moo-pass" => { moo_pass = true; },
             "--pretty"         => { pretty   = true; },
             "--simple"         => { simple   = true; },
@@ -458,7 +479,11 @@ fn parse_args() -> Result<Args, String> {
         return Err("Trial zones require --guild to run the guild-level staircase.".to_string());
     }
 
-    Ok(Args { zone, tier, hours, runs, moo_pass, com_exp, com_drop, pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild })
+    Ok(Args {
+        zone, tier, hours, runs, moo_pass, com_exp, com_drop,
+        shrine_force, shrine_tempo, shrine_spirit, shrine_rarity, shrine_scholar,
+        pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild,
+    })
 }
 
 // -- Main ----------------------------------------------------------------------
@@ -995,145 +1020,7 @@ fn run_guild_staircase(
     }
 }
 
-/// Temporary debug utility: dump one player's fully-computed combat_details
-/// (after equipment/buffs/abilities applied) as JSON, for cross-checking
-/// against another implementation's player stat computation.
-fn dump_one_player(name_filter: &str) {
-    let raw = { let mut s = String::new(); io::Read::read_to_string(&mut io::stdin(), &mut s).unwrap(); s };
-    let input: Value = serde_json::from_str(&raw).unwrap();
-    let player_dtos = parse_export(&input);
-    for dto in player_dtos.iter() {
-        if dto["hrid"].as_str().unwrap_or("") == name_filter {
-            let mut player = CombatUnit::create_from_dto(dto);
-            player.generate_permanent_buffs();
-            player.clear_buffs();
-            player.player_update_combat_details();
-            println!("{}", serde_json::to_string_pretty(&player.combat_details).unwrap());
-            return;
-        }
-    }
-    eprintln!("player '{}' not found", name_filter);
-}
-
-/// Temporary debug utility: run ONE fixed-tier guild-trial encounter (no
-/// staircase climbing) for a fixed simulated-time budget and dump aggregate
-/// combat statistics (damage, hit/miss counts, ability cast counts, stun
-/// counts) for cross-checking against another implementation's engine.
-fn dump_tier_stats(zone_hrid: &str, tier: i32, seconds: f64) {
-    let raw = { let mut s = String::new(); io::Read::read_to_string(&mut io::stdin(), &mut s).unwrap(); s };
-    let input: Value = serde_json::from_str(&raw).unwrap();
-    let mut player_dtos = parse_export(&input);
-    for dto in player_dtos.iter_mut() {
-        dto["food"] = json!([Value::Null, Value::Null, Value::Null]);
-        dto["drinks"] = json!([Value::Null, Value::Null, Value::Null]);
-    }
-
-    let zone = Some(Zone::new(zone_hrid.to_string(), tier));
-    let players: Vec<CombatUnit> = player_dtos.iter().map(|dto| {
-        let mut player = CombatUnit::create_from_dto(dto);
-        if let Some(ref z) = zone { player.zone_buffs = z.buffs.clone(); }
-        extra_regen_buffs().iter().for_each(|b| player.extra_buffs.push(b.clone()));
-        player
-    }).collect();
-
-    let mut sim = CombatSimulator::new(players, zone, None, false, None);
-    sim.set_guild_trial_mode(true);
-    let result = sim.simulate((seconds * 1e9) as i64).clone();
-
-    let mut player_hits = 0i64;
-    let mut player_misses = 0i64;
-    let mut monster_hits = 0i64;
-    let mut monster_misses = 0i64;
-    let mut player_damage_from_attacks = 0i64;
-    let mut monster_damage_from_attacks = 0i64;
-    let mut ability_casts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-    let mut player_ability_casts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-    let player_names: std::collections::HashSet<String> =
-        player_dtos.iter().filter_map(|d| d["hrid"].as_str().map(|s| s.to_string())).collect();
-
-    for (source, targets) in &result.attacks {
-        let is_player_source = player_names.contains(source);
-        for (_target, abilities) in targets {
-            for (ability, dmgmap) in abilities {
-                let mut count_for_ability = 0i64;
-                for (dmg_str, count) in dmgmap {
-                    count_for_ability += *count as i64;
-                    if dmg_str == "miss" {
-                        if is_player_source { player_misses += *count as i64; } else { monster_misses += *count as i64; }
-                    } else {
-                        let dmg: i64 = dmg_str.parse().unwrap_or(0);
-                        if is_player_source {
-                            player_hits += *count as i64;
-                            player_damage_from_attacks += dmg * (*count as i64);
-                        } else {
-                            monster_hits += *count as i64;
-                            monster_damage_from_attacks += dmg * (*count as i64);
-                        }
-                    }
-                }
-                if !is_player_source {
-                    *ability_casts.entry(ability.clone()).or_insert(0) += count_for_ability;
-                } else {
-                    *player_ability_casts.entry(ability.clone()).or_insert(0) += count_for_ability;
-                }
-            }
-        }
-    }
-
-    let total_damage_dealt: i64 = result.player_damage_dealt.values().sum();
-    let total_damage_taken: i64 = result.player_damage_taken.values().sum();
-
-    let summary = json!({
-        "tier": tier,
-        "seconds_requested": seconds,
-        "simulated_time_s": result.simulated_time as f64 / 1e9,
-        "dungeon_attempt_won": result.dungeon_attempt_won,
-        "enemy_hp_pct_remaining": result.enemy_hp_pct_remaining,
-        "num_players": player_dtos.len(),
-        "total_damage_dealt_by_players": total_damage_dealt,
-        "total_damage_taken_by_players": total_damage_taken,
-        "player_damage_from_attacks_map": player_damage_from_attacks,
-        "monster_damage_from_attacks_map": monster_damage_from_attacks,
-        "player_hits": player_hits,
-        "player_misses": player_misses,
-        "player_accuracy": player_hits as f64 / (player_hits + player_misses).max(1) as f64,
-        "monster_hits": monster_hits,
-        "monster_misses": monster_misses,
-        "monster_accuracy": monster_hits as f64 / (monster_hits + monster_misses).max(1) as f64,
-        "monster_ability_casts": ability_casts,
-        "player_ability_casts": player_ability_casts,
-        "stuns_applied_on_players": result.stuns_applied_on_players,
-        "stun_seconds_on_players": result.stun_seconds_on_players,
-        "stuns_applied_on_monsters": result.stuns_applied_on_monsters,
-        "stun_seconds_on_monsters": result.stun_seconds_on_monsters,
-        "total_player_deaths": result.player_deaths.values().sum::<i32>(),
-    });
-    println!("{}", serde_json::to_string_pretty(&summary).unwrap());
-}
-
-fn extra_regen_buffs() -> Vec<Buff> {
-    vec![
-        Buff::inline("/buff_uniques/guild_hp_regen_buff", "/buff_types/hp_regen", 0.0, 0.03, 0),
-        Buff::inline("/buff_uniques/guild_mp_regen_buff", "/buff_types/mp_regen", 0.0, 0.03, 0),
-    ]
-}
-
 fn main() {
-    {
-        let args: Vec<String> = std::env::args().collect();
-        if let Some(pos) = args.iter().position(|a| a == "--dump-player") {
-            let name = args.get(pos + 1).cloned().unwrap_or_default();
-            dump_one_player(&name);
-            std::process::exit(0);
-        }
-        if let Some(pos) = args.iter().position(|a| a == "--dump-tier-stats") {
-            let zone = args.get(pos + 1).cloned().unwrap_or_default();
-            let tier: i32 = args.get(pos + 2).and_then(|s| s.parse().ok()).unwrap_or(230);
-            let seconds: f64 = args.get(pos + 3).and_then(|s| s.parse().ok()).unwrap_or(120.0);
-            dump_tier_stats(&zone, tier, seconds);
-            std::process::exit(0);
-        }
-    }
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
@@ -1222,6 +1109,30 @@ fn main() {
     if args.guild {
         extra_buffs.push(Buff::inline("/buff_uniques/guild_hp_regen_buff", "/buff_types/hp_regen", 0.0, 0.03, 0));
         extra_buffs.push(Buff::inline("/buff_uniques/guild_mp_regen_buff", "/buff_types/mp_regen", 0.0, 0.03, 0));
+    }
+    // Guild combat shrines: guild-wide, so the same level applies to every player.
+    // Set blanket levels via --shrine-* until real import data carries per-account levels.
+    if args.shrine_force > 0 {
+        let lvl = args.shrine_force as f64;
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_force", "/buff_types/damage", 0.003 * lvl, 0.0, 0));
+    }
+    if args.shrine_tempo > 0 {
+        let lvl = args.shrine_tempo as f64;
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_tempo_attack_speed", "/buff_types/attack_speed", 0.004 * lvl, 0.0, 0));
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_tempo_cast_speed", "/buff_types/cast_speed", 0.0, 0.004 * lvl, 0));
+    }
+    if args.shrine_spirit > 0 {
+        let lvl = args.shrine_spirit as f64;
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_spirit_hp", "/buff_types/max_hitpoints", 0.01 * lvl, 0.0, 0));
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_spirit_mp", "/buff_types/max_manapoints", 0.01 * lvl, 0.0, 0));
+    }
+    if args.shrine_rarity > 0 {
+        let lvl = args.shrine_rarity as f64;
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_rarity", "/buff_types/rare_find", 0.0, 0.015 * lvl, 0));
+    }
+    if args.shrine_scholar > 0 {
+        let lvl = args.shrine_scholar as f64;
+        extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_scholar", "/buff_types/wisdom", 0.0, 0.005 * lvl, 0));
     }
     // Seals: permanent passive buffs (same values as JS worker.js personalBuffs)
     for seal in &args.seals {

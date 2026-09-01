@@ -884,13 +884,6 @@ impl CombatSimulator {
             matches!(&e.kind, EventKind::AutoAttack { source } if *source == source_idx)
             || matches!(&e.kind, EventKind::AbilityCastEnd { source, .. } if *source == source_idx)
         }).is_some();
-        if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
-            if self.units[source_idx].hrid == trace_hrid {
-                eprintln!("TRACE t={} add_next_attack_event ENTER already_scheduled={} is_stunned={} is_silenced={} is_blinded={}",
-                    self.simulation_time, already, self.units[source_idx].is_stunned,
-                    self.units[source_idx].is_silenced, self.units[source_idx].is_blinded);
-            }
-        }
         if already { return; }
 
         let is_player = self.units[source_idx].is_player;
@@ -971,11 +964,6 @@ impl CombatSimulator {
 
         if !self.units[source_idx].is_blinded {
             let interval = self.units[source_idx].combat_details.combat_stats.attack_interval as i64;
-            if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
-                if self.units[source_idx].hrid == trace_hrid {
-                    eprintln!("TRACE t={} SCHEDULE_AUTOATTACK next_at={} interval={} haste={}", sim_time, sim_time + interval, interval, haste);
-                }
-            }
             self.event_queue.add_event(CombatEvent {
                 time: sim_time + interval,
                 kind: EventKind::AutoAttack { source: source_idx },
@@ -1113,11 +1101,6 @@ impl CombatSimulator {
             None => return false,
         };
 
-        if let Ok(trace_hrid) = std::env::var("MWI_TRACE_MONSTER") {
-            if self.units[source_idx].hrid == trace_hrid {
-                eprintln!("TRACE t={} CAST {} (idx={})", self.simulation_time, ability.hrid, ability_idx);
-            }
-        }
 
         if self.units[source_idx].is_player {
             let cost = ability.mana_cost;
@@ -1358,13 +1341,6 @@ impl CombatSimulator {
                     self.units[actual_target].is_stunned = true;
                     let exp = self.simulation_time + effect.stun_duration;
                     self.units[actual_target].stun_expire_time = Some(exp);
-                    if self.units[actual_target].is_player {
-                        self.sim_result.stuns_applied_on_players += 1;
-                        self.sim_result.stun_seconds_on_players += effect.stun_duration as f64 / 1e9;
-                    } else {
-                        self.sim_result.stuns_applied_on_monsters += 1;
-                        self.sim_result.stun_seconds_on_monsters += effect.stun_duration as f64 / 1e9;
-                    }
                     let at = actual_target;
                     self.event_queue.clear_matching(|e| matches!(&e.kind,
                         EventKind::AutoAttack { source } | EventKind::AbilityCastEnd { source, .. } | EventKind::StunExpiration { source }

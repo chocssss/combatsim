@@ -99,13 +99,6 @@ pub struct SimResult {
     // still alive in the encounter) remaining at the moment the party wiped.
     // Only set on a wipe; None otherwise.
     pub enemy_hp_pct_remaining: Option<f64>,
-    /// Debug-only counters for cross-implementation comparison (stun applications
-    /// and total stun-seconds inflicted, split by whether the stunned unit is a
-    /// player or a monster).
-    pub stuns_applied_on_players: i32,
-    pub stuns_applied_on_monsters: i32,
-    pub stun_seconds_on_players: f64,
-    pub stun_seconds_on_monsters: f64,
 }
 
 impl SimResult {
@@ -170,10 +163,6 @@ impl SimResult {
             time_series_data: TimeSeriesData::default(),
             dungeon_attempt_won: None,
             enemy_hp_pct_remaining: None,
-            stuns_applied_on_players: 0,
-            stuns_applied_on_monsters: 0,
-            stun_seconds_on_players: 0.0,
-            stun_seconds_on_monsters: 0.0,
         }
     }
 

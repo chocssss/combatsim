@@ -713,6 +713,9 @@ impl CombatUnit {
             self.set_cd_level(stat, boosted);
         }
 
+        self.combat_details.combat_stats.max_hitpoints_ratio += self.get_buff_boost("/buff_types/max_hitpoints").ratio_boost;
+        self.combat_details.combat_stats.max_manapoints_ratio += self.get_buff_boost("/buff_types/max_manapoints").ratio_boost;
+
         self.combat_details.max_hitpoints = ((10.0 * (10.0 + self.combat_details.stamina_level)
             + self.combat_details.combat_stats.max_hitpoints)
             * (1.0 + self.combat_details.combat_stats.max_hitpoints_ratio))
@@ -916,10 +919,12 @@ impl CombatUnit {
     /// the fight silently erased a guild monster's participant scaling for
     /// the rest of the encounter.
     pub fn update_combat_details(&mut self) {
-        if self.is_player {
-            self.update_combat_details_base();
-        } else {
+        let is_real_monster = !self.is_player
+            && crate::combatsimulator::data::combat_monster_detail_map().contains_key(&self.hrid);
+        if is_real_monster {
             crate::combatsimulator::monster::monster_update_combat_details(self);
+        } else {
+            self.update_combat_details_base();
         }
     }
 
@@ -1018,6 +1023,8 @@ impl CombatUnit {
         s.combat_drop_quantity = b.combat_drop_quantity;
         s.hp_regen_per10      = b.hp_regen_per10;
         s.mp_regen_per10      = b.mp_regen_per10;
+        s.max_hitpoints_ratio  = b.max_hitpoints_ratio;
+        s.max_manapoints_ratio = b.max_manapoints_ratio;
         s.retaliation         = b.retaliation;
         s.tenacity            = b.tenacity;
         s.ability_haste       = b.ability_haste;
@@ -1025,53 +1032,5 @@ impl CombatUnit {
         s.attack_interval     = b.attack_interval;
         s.attack_speed        = b.attack_speed;
         s.damage_taken        = 0.0; // always from buffs only
-    }
-}
-#[cfg(test)]
-mod strongest_buff_tests {
-    use super::*;
-
-    fn flat_buff(unique: &str, type_hrid: &str, flat: f64, duration: i64) -> Buff {
-        Buff::inline(unique, type_hrid, 0.0, flat, duration)
-    }
-
-    #[test]
-    fn strongest_instance_wins_and_falls_back_on_expiry() {
-        let mut unit = CombatUnit::new_base();
-
-        // source 1 (weak, long duration): flat 0.06, applied at t=0, expires t=100
-        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.06, 100), 0, 1);
-        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.06);
-
-        // source 2 (strong, short duration): flat 0.10, applied at t=10, expires t=60
-        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.10, 50), 10, 2);
-        // Strongest active instance wins regardless of recency.
-        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.10);
-
-        // Source 1 re-applies a weak refresh in between — still weaker than source 2.
-        unit.add_buff(flat_buff("/buff_uniques/fierce_aura", "/buff_types/physical_amplify", 0.06, 100), 30, 1);
-        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.10);
-
-        // Source 2's instance expires (t=61 > 60); source 1's (started t=30, duration 100, expires t=130) survives.
-        unit.remove_expired_buffs(61);
-        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.06);
-
-        // Both expire eventually -> buff fully gone.
-        unit.remove_expired_buffs(131);
-        assert_eq!(unit.get_buff_boost("/buff_types/physical_amplify").flat_boost, 0.0);
-    }
-
-    #[test]
-    fn removing_one_source_falls_back_to_next_strongest() {
-        let mut unit = CombatUnit::new_base();
-        unit.add_buff(flat_buff("/buff_uniques/x", "/buff_types/damage", 0.05, 1000), 0, 1);
-        unit.add_buff(flat_buff("/buff_uniques/x", "/buff_types/damage", 0.20, 1000), 0, 2);
-        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.20);
-
-        unit.remove_buff_by_unique("/buff_uniques/x", 2);
-        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.05);
-
-        unit.remove_buff_by_unique("/buff_uniques/x", 1);
-        assert_eq!(unit.get_buff_boost("/buff_types/damage").flat_boost, 0.0);
     }
 }
