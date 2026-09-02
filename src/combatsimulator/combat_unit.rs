@@ -670,10 +670,7 @@ impl CombatUnit {
                         cd = cd * 100.0 / (100.0 + haste);
                     }
                     let cd_i = cd as i64;
-                    use rand::Rng;
-                    let mut rng = rand::thread_rng();
-                    let offset = rng.gen_range(0..=(cd_i / 2).max(1));
-                    ability.last_used = current_time - (cd_i / 2) + offset;
+                    ability.last_used = current_time - (cd_i / 2);
                 }
             }
         }
