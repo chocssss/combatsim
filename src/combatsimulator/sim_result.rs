@@ -48,6 +48,11 @@ pub struct SimResult {
     pub attacks: HashMap<String, HashMap<String, HashMap<String, HashMap<String, i32>>>>,
     pub consumables_used: HashMap<String, HashMap<String, i32>>,
     pub hitpoints_gained: HashMap<String, HashMap<String, i64>>,
+    // HP restored to OTHER units by each player's heal/revive abilities (keyed by
+    // caster hrid), as opposed to hitpoints_gained which is keyed by the receiver.
+    // Excludes self-heals (lifesteal, regen, self-targeted abilities like
+    // Vampirism) - only counts healing actually given to an ally.
+    pub player_healing_given: HashMap<String, i64>,
     pub manapoints_gained: HashMap<String, HashMap<String, i64>>,
     pub debuff_on_level_gap: HashMap<String, f64>,
     pub drop_rate_multiplier: HashMap<String, f64>,
@@ -68,6 +73,7 @@ pub struct SimResult {
     pub hitpoints_spent: HashMap<String, HashMap<String, i64>>,
     pub player_damage_dealt: HashMap<String, i64>,
     pub player_damage_taken: HashMap<String, i64>,
+    pub player_damage_taken_before_mitigation: HashMap<String, i64>,
     pub player_damage_taken_by_source: HashMap<String, HashMap<String, i64>>,
     pub player_damage_taken_by_ability: HashMap<String, HashMap<String, i64>>,
     pub player_damage_dealt_by_ability: HashMap<String, HashMap<String, i64>>,
@@ -123,6 +129,7 @@ impl SimResult {
             attacks: HashMap::new(),
             consumables_used: HashMap::new(),
             hitpoints_gained: HashMap::new(),
+            player_healing_given: HashMap::new(),
             manapoints_gained: HashMap::new(),
             debuff_on_level_gap: HashMap::new(),
             drop_rate_multiplier: HashMap::new(),
@@ -139,6 +146,7 @@ impl SimResult {
             hitpoints_spent: HashMap::new(),
             player_damage_dealt: HashMap::new(),
             player_damage_taken: HashMap::new(),
+            player_damage_taken_before_mitigation: HashMap::new(),
             player_damage_taken_by_source: HashMap::new(),
             player_damage_taken_by_ability: HashMap::new(),
             player_damage_dealt_by_ability: HashMap::new(),
@@ -300,6 +308,12 @@ impl SimResult {
         *self.player_damage_dealt.entry(player_hrid.to_string()).or_insert(0) += amount;
     }
 
+    pub fn add_player_healing_given(&mut self, player_hrid: &str, amount: i64) {
+        if amount > 0 {
+            *self.player_healing_given.entry(player_hrid.to_string()).or_insert(0) += amount;
+        }
+    }
+
     /// Record damage attributable to a specific damage_taken debuff (by its unique_hrid).
     pub fn add_debuff_damage(&mut self, player_hrid: &str, debuff_unique: &str, amount: i64) {
         if amount > 0 {
@@ -311,6 +325,12 @@ impl SimResult {
 
     pub fn add_player_damage_taken(&mut self, player_hrid: &str, amount: i64) {
         *self.player_damage_taken.entry(player_hrid.to_string()).or_insert(0) += amount;
+    }
+
+    /// Same as player_damage_taken, but before the target's armor/resistance
+    /// mitigation ratio (and the current-HP overkill clamp) was applied.
+    pub fn add_player_damage_taken_before_mitigation(&mut self, player_hrid: &str, amount: i64) {
+        *self.player_damage_taken_before_mitigation.entry(player_hrid.to_string()).or_insert(0) += amount;
     }
 
     pub fn add_player_damage_taken_by_source(&mut self, player_hrid: &str, source_hrid: &str, amount: i64) {

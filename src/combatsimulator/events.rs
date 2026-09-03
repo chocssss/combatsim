@@ -39,7 +39,7 @@ pub enum EventKind {
     EnemyRespawn,
     AutoAttack { source: UnitIdx },
     ConsumableTick { source: UnitIdx, consumable_hrid: String, total_ticks: i32, current_tick: i32 },
-    DamageOverTime { source_ref: UnitIdx, target: UnitIdx, damage: f64, total_ticks: i32, current_tick: i32, combat_style_hrid: String },
+    DamageOverTime { source_ref: UnitIdx, target: UnitIdx, damage: f64, raw_damage: f64, total_ticks: i32, current_tick: i32, combat_style_hrid: String },
     CheckBuffExpiration { source: UnitIdx },
     RegenTick,
     StunExpiration { source: UnitIdx },

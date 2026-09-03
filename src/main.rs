@@ -230,11 +230,17 @@ fn merge_results(results: Vec<SimResult>) -> SimResult {
         }
 
         // player_damage_dealt / player_damage_taken: sum across runs
+        for (player, amt) in &r.player_healing_given {
+            *merged.player_healing_given.entry(player.clone()).or_insert(0) += amt;
+        }
         for (player, amt) in &r.player_damage_dealt {
             *merged.player_damage_dealt.entry(player.clone()).or_insert(0) += amt;
         }
         for (player, amt) in &r.player_damage_taken {
             *merged.player_damage_taken.entry(player.clone()).or_insert(0) += amt;
+        }
+        for (player, amt) in &r.player_damage_taken_before_mitigation {
+            *merged.player_damage_taken_before_mitigation.entry(player.clone()).or_insert(0) += amt;
         }
         for (player, by_source) in &r.player_damage_taken_by_source {
             let m = merged.player_damage_taken_by_source.entry(player.clone()).or_default();
@@ -381,6 +387,10 @@ fn print_usage() {
     eprintln!("                    regen buff. Combine with --runs N to climb the staircase");
     eprintln!("                    N times in parallel and report, per guild level, the");
     eprintln!("                    average attempt duration and % of runs that cleared it.");
+    eprintln!("  --details         With --guild: also report, per player, the average total");
+    eprintln!("                    damage dealt, healing done, and damage taken (before armor/");
+    eprintln!("                    resistance mitigation) across the whole staircase climb");
+    eprintln!("                    (summed across levels, averaged over runs).");
 }
 
 fn list_zones() {
@@ -428,6 +438,7 @@ struct Args {
     all_zones: bool,
     optimize: Option<String>,
     guild: bool,
+    details: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -464,6 +475,7 @@ fn parse_args() -> Result<Args, String> {
     let mut all_zones    = false;
     let mut optimize: Option<String> = None;
     let mut guild = false;
+    let mut details = false;
 
     let mut i = 1;
     while i < args.len() {
@@ -496,6 +508,7 @@ fn parse_args() -> Result<Args, String> {
             "--all-zones"  => { all_zones = true; },
             "--optimize"   => { i += 1; if let Some(s) = args.get(i) { optimize = Some(s.clone()); } },
             "--guild"      => { guild = true; },
+            "--details"    => { details = true; },
             other if other.starts_with("--") => return Err(format!("Unknown argument: {}", other)),
             _ => {}
         }
@@ -514,7 +527,7 @@ fn parse_args() -> Result<Args, String> {
         shrine_force, shrine_tempo, shrine_spirit, shrine_rarity, shrine_scholar,
         building_dining, building_library, building_dojo, building_armory,
         building_gym, building_archery, building_mystical,
-        pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild,
+        pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild, details,
     })
 }
 
@@ -917,6 +930,12 @@ struct GuildLevelAttempt {
     // Total damage dealt / healing received by the party, summed across all players.
     total_damage_dealt: i64,
     total_healing_done: i64,
+    // Per-player breakdown of the same, keyed by player hrid.
+    player_damage_dealt: std::collections::HashMap<String, i64>,
+    // Healing given to allies (caster-attributed, self-sustain excluded).
+    player_healing_done: std::collections::HashMap<String, i64>,
+    // Before armor/resistance mitigation.
+    player_damage_taken: std::collections::HashMap<String, i64>,
 }
 
 /// Climbs a trial zone's guild-level staircase (100, 110, 120, ... up to 300) once.
@@ -967,6 +986,13 @@ fn run_one_guild_staircase(
             deaths,
             total_damage_dealt,
             total_healing_done,
+            player_damage_dealt: result.player_damage_dealt.clone(),
+            // Healing given to allies (caster-attributed), not HP received -
+            // excludes self-sustain (regen, lifesteal, self-targeted heals).
+            player_healing_done: result.player_healing_given.clone(),
+            // Before mitigation (armor/resistance), matching how the game's own
+            // combat log reports damage taken - not the post-mitigation HP loss.
+            player_damage_taken: result.player_damage_taken_before_mitigation.clone(),
         });
 
         if won == Some(true) {
@@ -995,7 +1021,7 @@ fn run_guild_staircase(
     println!("=== MWI Guild Trial Staircase: {} ({} run{}) ===",
         args.zone, args.runs, if args.runs == 1 { "" } else { "s" });
     println!("{:<8} {:>10} {:>10} {:>14} {:>11} {:>12} {:>12} {:>18}",
-        "Guild", "Attempts", "Cleared%", "Avg Duration", "Avg Deaths", "Avg DPS", "Avg HPS", "Avg Boss HP% (wipe/timeout)");
+        "Guild", "Attempts", "Cleared%", "Avg Duration", "Avg Deaths", "Avg DPS", "Avg HPS", "Avg Boss Dmg% (wipe/timeout)");
     println!("{}", "-".repeat(113));
 
     let mut guild = GUILD_START;
@@ -1030,7 +1056,8 @@ fn run_guild_staircase(
         let avg_boss_hp = if boss_hp_pcts.is_empty() {
             "n/a".to_string()
         } else {
-            format!("{:.1}%", boss_hp_pcts.iter().sum::<f64>() / boss_hp_pcts.len() as f64)
+            let avg_remaining = boss_hp_pcts.iter().sum::<f64>() / boss_hp_pcts.len() as f64;
+            format!("{:.1}%", 100.0 - avg_remaining)
         };
 
         println!("{:<8} {:>10} {:>9.1}% {:>13.1}s {:>11.2} {:>12.0} {:>12.0} {:>27}",
@@ -1049,6 +1076,52 @@ fn run_guild_staircase(
     println!("Average highest guild level cleared: {:.1}", avg_highest);
     if args.runs > 1 {
         println!("Runs reaching cap ({}): {}/{}", GUILD_MAX, cap_reached, args.runs);
+    }
+
+    if args.details {
+        print_guild_player_details(&all_runs);
+    }
+}
+
+/// --details: per-player total damage dealt, healing done, and damage taken,
+/// summed across every level attempted within a run and averaged over runs.
+fn print_guild_player_details(all_runs: &[Vec<GuildLevelAttempt>]) {
+    let mut players: Vec<String> = all_runs.iter()
+        .flat_map(|run| run.iter())
+        .flat_map(|a| a.player_damage_dealt.keys()
+            .chain(a.player_healing_done.keys())
+            .chain(a.player_damage_taken.keys()))
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    players.sort();
+
+    if players.is_empty() { return; }
+
+    println!();
+    println!("=== Per-Player Totals (avg across {} run{}, summed over the whole climb) ===",
+        all_runs.len(), if all_runs.len() == 1 { "" } else { "s" });
+    println!("{:<30} {:>16} {:>16} {:>19}", "Player", "Total Damage", "Total Healing", "Dmg Taken (pre-mit)");
+    println!("{}", "-".repeat(85));
+
+    let n_runs = all_runs.len() as f64;
+    for player in &players {
+        let sum_damage: i64 = all_runs.iter()
+            .flat_map(|run| run.iter())
+            .filter_map(|a| a.player_damage_dealt.get(player))
+            .sum();
+        let sum_healing: i64 = all_runs.iter()
+            .flat_map(|run| run.iter())
+            .filter_map(|a| a.player_healing_done.get(player))
+            .sum();
+        let sum_taken: i64 = all_runs.iter()
+            .flat_map(|run| run.iter())
+            .filter_map(|a| a.player_damage_taken.get(player))
+            .sum();
+
+        println!("{:<30} {:>16.0} {:>16.0} {:>19.0}",
+            player, sum_damage as f64 / n_runs, sum_healing as f64 / n_runs, sum_taken as f64 / n_runs);
     }
 }
 

@@ -309,8 +309,8 @@ impl CombatSimulator {
             EventKind::AutoAttack { source }                   => self.process_auto_attack(source),
             EventKind::ConsumableTick { source, consumable_hrid, total_ticks, current_tick }
                 => self.process_consumable_tick(source, &consumable_hrid, total_ticks, current_tick),
-            EventKind::DamageOverTime { source_ref, target, damage, total_ticks, current_tick, combat_style_hrid }
-                => self.process_dot_tick(source_ref, target, damage, total_ticks, current_tick, &combat_style_hrid),
+            EventKind::DamageOverTime { source_ref, target, damage, raw_damage, total_ticks, current_tick, combat_style_hrid }
+                => self.process_dot_tick(source_ref, target, damage, raw_damage, total_ticks, current_tick, &combat_style_hrid),
             EventKind::CheckBuffExpiration { source } => {
                 let t = self.simulation_time;
                 self.units[source].remove_expired_buffs(t);
@@ -638,6 +638,7 @@ impl CombatSimulator {
                     }
                     if self.units[actual_target].is_player {
                         self.sim_result.add_player_damage_taken(&tgt_hrid, attack_result.damage_done);
+                        self.sim_result.add_player_damage_taken_before_mitigation(&tgt_hrid, attack_result.raw_damage);
                         self.sim_result.add_player_damage_taken_by_source(&tgt_hrid, &src_hrid, attack_result.damage_done);
                         self.sim_result.add_player_damage_taken_by_ability(&tgt_hrid, "autoAttack", attack_result.damage_done);
                     }
@@ -662,6 +663,7 @@ impl CombatSimulator {
                 }
                 if self.units[actual_source].is_player {
                     self.sim_result.add_player_damage_taken(&src_hrid, attack_result.thorn_damage_done);
+                    self.sim_result.add_player_damage_taken_before_mitigation(&src_hrid, attack_result.raw_thorn_damage);
                     self.sim_result.add_player_damage_taken_by_source(&src_hrid, &tgt_hrid, attack_result.thorn_damage_done);
                     self.sim_result.add_player_damage_taken_by_ability(&src_hrid, &attack_result.thorn_type, attack_result.thorn_damage_done);
                 }
@@ -682,6 +684,7 @@ impl CombatSimulator {
                     }
                     if self.units[actual_source].is_player {
                         self.sim_result.add_player_damage_taken(&src_hrid, attack_result.retaliation_damage_done);
+                        self.sim_result.add_player_damage_taken_before_mitigation(&src_hrid, attack_result.raw_retaliation_damage);
                         self.sim_result.add_player_damage_taken_by_source(&src_hrid, &tgt_hrid, attack_result.retaliation_damage_done);
                         self.sim_result.add_player_damage_taken_by_ability(&src_hrid, "retaliation", attack_result.retaliation_damage_done);
                     }
@@ -1255,6 +1258,7 @@ impl CombatSimulator {
                     }
                     if self.units[source_idx].is_player {
                         self.sim_result.add_player_damage_taken(&tgt_hrid, ar.damage_done);
+                        self.sim_result.add_player_damage_taken_before_mitigation(&tgt_hrid, ar.raw_damage);
                         self.sim_result.add_player_damage_taken_by_source(&tgt_hrid, &src_hrid, ar.damage_done);
                         self.sim_result.add_player_damage_taken_by_ability(&tgt_hrid, "parry", ar.damage_done);
                     }
@@ -1328,6 +1332,7 @@ impl CombatSimulator {
                     kind: EventKind::DamageOverTime {
                         source_ref: source_idx, target: actual_target,
                         damage: ar.damage_done as f64 * effect.damage_over_time_ratio,
+                        raw_damage: ar.raw_damage as f64 * effect.damage_over_time_ratio,
                         total_ticks: tot_ticks, current_tick: 1,
                         combat_style_hrid: effect.combat_style_hrid.clone(),
                     },
@@ -1408,6 +1413,7 @@ impl CombatSimulator {
                 }
                 if self.units[actual_target].is_player {
                     self.sim_result.add_player_damage_taken(&tgt_hrid, ar.damage_done);
+                    self.sim_result.add_player_damage_taken_before_mitigation(&tgt_hrid, ar.raw_damage);
                     self.sim_result.add_player_damage_taken_by_source(&tgt_hrid, &src_hrid, ar.damage_done);
                     self.sim_result.add_player_damage_taken_by_ability(&tgt_hrid, &ability.hrid, ar.damage_done);
                 }
@@ -1420,6 +1426,7 @@ impl CombatSimulator {
                 }
                 if self.units[source_idx].is_player {
                     self.sim_result.add_player_damage_taken(&src_hrid, ar.thorn_damage_done);
+                    self.sim_result.add_player_damage_taken_before_mitigation(&src_hrid, ar.raw_thorn_damage);
                     self.sim_result.add_player_damage_taken_by_source(&src_hrid, &tgt_hrid, ar.thorn_damage_done);
                     self.sim_result.add_player_damage_taken_by_ability(&src_hrid, &ar.thorn_type, ar.thorn_damage_done);
                 }
@@ -1438,6 +1445,7 @@ impl CombatSimulator {
                     }
                     if self.units[source_idx].is_player {
                         self.sim_result.add_player_damage_taken(&src_hrid, ar.retaliation_damage_done);
+                        self.sim_result.add_player_damage_taken_before_mitigation(&src_hrid, ar.raw_retaliation_damage);
                         self.sim_result.add_player_damage_taken_by_source(&src_hrid, &tgt_hrid, ar.retaliation_damage_done);
                         self.sim_result.add_player_damage_taken_by_ability(&src_hrid, "retaliation", ar.retaliation_damage_done);
                     }
@@ -1487,6 +1495,9 @@ impl CombatSimulator {
             let healed = CombatUtilities::process_heal(&src_clone, effect, &mut self.units[tgt]);
             let tgt_unit = self.units[tgt].clone();
             self.sim_result.add_hitpoints_gained(&tgt_unit, &ability.hrid, healed);
+            if src_clone.is_player && tgt != source_idx && healed > 0 {
+                self.sim_result.add_player_healing_given(&src_clone.hrid, healed);
+            }
         }
     }
 
@@ -1502,6 +1513,9 @@ impl CombatSimulator {
             let healed = CombatUtilities::process_revive(&src, effect, &mut self.units[revive_idx]);
             let tgt = self.units[revive_idx].clone();
             self.sim_result.add_hitpoints_gained(&tgt, &ability.hrid, healed);
+            if src.is_player && healed > 0 {
+                self.sim_result.add_player_healing_given(&src.hrid, healed);
+            }
             self.add_next_attack_event(revive_idx);
             if !self.units[source_idx].is_player {
                 self.sim_result.update_time_spent_alive(&hrid, true, self.simulation_time);
@@ -1550,8 +1564,9 @@ impl CombatSimulator {
         }
     }
 
-    fn process_dot_tick(&mut self, source_ref: UnitIdx, target: UnitIdx, damage: f64, total_ticks: i32, current_tick: i32, combat_style_hrid: &str) {
+    fn process_dot_tick(&mut self, source_ref: UnitIdx, target: UnitIdx, damage: f64, raw_damage: f64, total_ticks: i32, current_tick: i32, combat_style_hrid: &str) {
         let tick_dmg = CombatUtilities::calculate_tick_value(damage as i64, total_ticks, current_tick);
+        let raw_tick_dmg = CombatUtilities::calculate_tick_value(raw_damage as i64, total_ticks, current_tick);
         let clamped = tick_dmg.min(self.units[target].combat_details.current_hitpoints);
         self.units[target].combat_details.current_hitpoints -= clamped;
 
@@ -1617,6 +1632,7 @@ impl CombatSimulator {
             }
             if self.units[target].is_player {
                 self.sim_result.add_player_damage_taken(&tgt_unit.hrid, clamped);
+                self.sim_result.add_player_damage_taken_before_mitigation(&tgt_unit.hrid, raw_tick_dmg);
                 self.sim_result.add_player_damage_taken_by_source(&tgt_unit.hrid, &src_hrid, clamped);
                 self.sim_result.add_player_damage_taken_by_ability(&tgt_unit.hrid, "damageOverTime", clamped);
             }
@@ -1632,7 +1648,7 @@ impl CombatSimulator {
             self.event_queue.add_event(CombatEvent {
                 time: self.simulation_time + DOT_TICK_INTERVAL,
                 kind: EventKind::DamageOverTime {
-                    source_ref, target, damage, total_ticks, current_tick: current_tick + 1,
+                    source_ref, target, damage, raw_damage, total_ticks, current_tick: current_tick + 1,
                     combat_style_hrid: combat_style_hrid.to_string(),
                 },
             });

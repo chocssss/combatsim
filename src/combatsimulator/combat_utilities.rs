@@ -17,6 +17,12 @@ pub struct AttackResult {
     /// Per-buff resistance debuff attribution: (unique_hrid, damage_contribution)
     /// Each entry = damage that wouldn't have happened without that resistance debuff.
     pub resist_debuff_damage: Vec<(String, i64)>,
+    /// damage_done / thorn_damage_done / retaliation_damage_done before the
+    /// target's armor/resistance mitigation ratio (and the current-HP overkill
+    /// clamp) is applied - i.e. the raw hit that landed, before defenses.
+    pub raw_damage: i64,
+    pub raw_thorn_damage: i64,
+    pub raw_retaliation_damage: i64,
 }
 
 pub struct CombatUtilities;
@@ -172,7 +178,9 @@ impl CombatUtilities {
         }
 
         let mut damage_done: i64 = 0;
+        let mut raw_damage: i64 = 0;
         let mut thorn_damage_done: i64 = 0;
+        let mut raw_thorn_damage: i64 = 0;
         let mut did_hit = false;
 
         if rng.gen::<f64>() < hit_chance {
@@ -186,6 +194,7 @@ impl CombatUtilities {
             } else {
                 100.0 / (100.0 + penetrated)
             };
+            raw_damage = damage_roll.ceil() as i64;
             let mitigated = (dmg_taken_ratio * damage_roll).ceil() as i64;
             damage_done = mitigated.min(target.combat_details.current_hitpoints);
             target.combat_details.current_hitpoints -= damage_done;
@@ -210,6 +219,7 @@ impl CombatUtilities {
                 1.0,
                 thorn_mult * target.combat_details.defensive_max_damage * (1.0 + target_resistance / 100.0) * target_thorn_power,
             ) as f64;
+            raw_thorn_damage = thorn_roll.ceil() as i64;
             let mitigated = (src_dmg_taken * thorn_roll).ceil() as i64;
             thorn_damage_done = mitigated.min(source.combat_details.current_hitpoints);
             source.combat_details.current_hitpoints -= thorn_damage_done;
@@ -217,6 +227,7 @@ impl CombatUtilities {
 
         // Retaliation
         let mut retaliation_damage_done = 0i64;
+        let mut raw_retaliation_damage = 0i64;
         if target.combat_details.combat_stats.retaliation > 0.0 {
             let ret_hit_chance = target.combat_details.smash_accuracy_rating.powf(1.4)
                 / (target.combat_details.smash_accuracy_rating.powf(1.4) + source.combat_details.smash_evasion_rating.powf(1.4));
@@ -240,6 +251,7 @@ impl CombatUtilities {
                 let ret_min = ret_mult * target.combat_details.combat_stats.retaliation * premit;
                 let ret_max = ret_mult * target.combat_details.combat_stats.retaliation * (target.combat_details.defensive_max_damage + premit);
                 let ret_roll = Self::random_int(ret_min, ret_max) as f64;
+                raw_retaliation_damage = ret_roll.ceil() as i64;
                 let mitigated = (src_dmg_taken * ret_roll).ceil() as i64;
                 retaliation_damage_done = mitigated.min(source.combat_details.current_hitpoints);
                 source.combat_details.current_hitpoints -= retaliation_damage_done;
@@ -330,6 +342,9 @@ impl CombatUtilities {
             is_crit,
             debuff_damage,
             resist_debuff_damage,
+            raw_damage,
+            raw_thorn_damage,
+            raw_retaliation_damage,
         }
     }
 
