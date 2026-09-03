@@ -357,6 +357,15 @@ fn print_usage() {
     eprintln!("  --shrine-rarity N  Shrine of Rarity level 0-20 (+1.5%% rare find/lvl)");
     eprintln!("  --shrine-scholar N Shrine of Scholar level 0-20 (+0.5%% combat XP/lvl)");
     eprintln!("                    Applied identically to every player (guild shrines are guild-wide).");
+    eprintln!("  --building-dining N   Dining Room level 0-20 (+2 stamina/lvl, +0.3%% HP regen/lvl)");
+    eprintln!("  --building-library N  Library level 0-20 (+2 intelligence/lvl, +0.3%% MP regen/lvl)");
+    eprintln!("  --building-dojo N     Dojo level 0-20 (+2 attack/lvl)");
+    eprintln!("  --building-armory N   Armory level 0-20 (+2 defense/lvl)");
+    eprintln!("  --building-gym N      Gym level 0-20 (+2 melee/lvl)");
+    eprintln!("  --building-archery N  Archery Range level 0-20 (+2 ranged/lvl)");
+    eprintln!("  --building-mystical N Mystical Study level 0-20 (+2 magic/lvl)");
+    eprintln!("                    Applied identically to every player. Only takes effect with --guild");
+    eprintln!("                    (guild buildings only exist in a guild's Guild Hall).");
     eprintln!("  --seal NAME       Apply a seal buff (repeatable). Names: seal_of_wisdom,");
     eprintln!("                    seal_of_damage, seal_of_attack_speed, seal_of_cast_speed,");
     eprintln!("                    seal_of_critical_rate, seal_of_combat_drop, seal_of_rare_find");
@@ -403,6 +412,13 @@ struct Args {
     shrine_spirit:  i32,
     shrine_rarity:  i32,
     shrine_scholar: i32,
+    building_dining:   i32,
+    building_library:  i32,
+    building_dojo:     i32,
+    building_armory:   i32,
+    building_gym:      i32,
+    building_archery:  i32,
+    building_mystical: i32,
     pretty:   bool,
     simple:   bool,
     custom_monsters: Vec<String>,  // paths to JSON files
@@ -432,6 +448,13 @@ fn parse_args() -> Result<Args, String> {
     let mut shrine_spirit  = 0i32;
     let mut shrine_rarity  = 0i32;
     let mut shrine_scholar = 0i32;
+    let mut building_dining   = 0i32;
+    let mut building_library  = 0i32;
+    let mut building_dojo     = 0i32;
+    let mut building_armory   = 0i32;
+    let mut building_gym      = 0i32;
+    let mut building_archery  = 0i32;
+    let mut building_mystical = 0i32;
     let mut pretty   = false;
     let mut simple   = false;
     let mut custom_monsters: Vec<String> = Vec::new();
@@ -456,6 +479,13 @@ fn parse_args() -> Result<Args, String> {
             "--shrine-spirit"  => { i += 1; shrine_spirit  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
             "--shrine-rarity"  => { i += 1; shrine_rarity  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
             "--shrine-scholar" => { i += 1; shrine_scholar = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-dining"   => { i += 1; building_dining   = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-library"  => { i += 1; building_library  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-dojo"     => { i += 1; building_dojo     = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-armory"   => { i += 1; building_armory   = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-gym"      => { i += 1; building_gym      = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-archery"  => { i += 1; building_archery  = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
+            "--building-mystical" => { i += 1; building_mystical = args.get(i).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0).clamp(0, 20); },
             "--moo-pass" => { moo_pass = true; },
             "--pretty"         => { pretty   = true; },
             "--simple"         => { simple   = true; },
@@ -482,6 +512,8 @@ fn parse_args() -> Result<Args, String> {
     Ok(Args {
         zone, tier, hours, runs, moo_pass, com_exp, com_drop,
         shrine_force, shrine_tempo, shrine_spirit, shrine_rarity, shrine_scholar,
+        building_dining, building_library, building_dojo, building_armory,
+        building_gym, building_archery, building_mystical,
         pretty, simple, seals, custom_monsters, input_file, market_prices, all_zones, optimize, guild,
     })
 }
@@ -1133,6 +1165,44 @@ fn main() {
     if args.shrine_scholar > 0 {
         let lvl = args.shrine_scholar as f64;
         extra_buffs.push(Buff::inline("/buff_uniques/guild_shrine_scholar", "/buff_types/wisdom", 0.0, 0.005 * lvl, 0));
+    }
+    // Guild buildings: guild-wide, so the same level applies to every player.
+    // Set blanket levels via --building-* until real import data carries per-account levels.
+    // +2 skill level per level (double the personal house-room rate) via the same
+    // `/buff_types/{skill}_level` types the engine already consumes for house rooms.
+    // Unlike shrines, buildings only exist in a guild's Guild Hall and only ever
+    // apply during --guild trial runs.
+    if args.guild {
+        if args.building_dining > 0 {
+            let lvl = args.building_dining as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_dining_stamina", "/buff_types/stamina_level", 0.0, 2.0 * lvl, 0));
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_dining_hp_regen", "/buff_types/hp_regen", 0.0, 0.003 * lvl, 0));
+        }
+        if args.building_library > 0 {
+            let lvl = args.building_library as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_library_intelligence", "/buff_types/intelligence_level", 0.0, 2.0 * lvl, 0));
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_library_mp_regen", "/buff_types/mp_regen", 0.0, 0.003 * lvl, 0));
+        }
+        if args.building_dojo > 0 {
+            let lvl = args.building_dojo as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_dojo_attack", "/buff_types/attack_level", 0.0, 2.0 * lvl, 0));
+        }
+        if args.building_armory > 0 {
+            let lvl = args.building_armory as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_armory_defense", "/buff_types/defense_level", 0.0, 2.0 * lvl, 0));
+        }
+        if args.building_gym > 0 {
+            let lvl = args.building_gym as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_gym_melee", "/buff_types/melee_level", 0.0, 2.0 * lvl, 0));
+        }
+        if args.building_archery > 0 {
+            let lvl = args.building_archery as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_archery_ranged", "/buff_types/ranged_level", 0.0, 2.0 * lvl, 0));
+        }
+        if args.building_mystical > 0 {
+            let lvl = args.building_mystical as f64;
+            extra_buffs.push(Buff::inline("/buff_uniques/guild_building_mystical_magic", "/buff_types/magic_level", 0.0, 2.0 * lvl, 0));
+        }
     }
     // Seals: permanent passive buffs (same values as JS worker.js personalBuffs)
     for seal in &args.seals {
